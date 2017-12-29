@@ -619,12 +619,13 @@ export class Isbn
     {
         return this.toString();
     }
-
-    toString (): string
+    
+    toString (dashes = true): string
     {
-        return [this.prefix, this.registrationGroup, this.registrant,
-                this.publication, [this.check === -1 ? "X" : this.check]]
-            .map(a => a.join("")).join("-");
+        let data = [this.prefix, this.registrationGroup, this.registrant,
+                    this.publication, [this.check === -1 ? "X" : this.check]];
+        let groups = data.map(a => a.join(""));
+        return dashes ? groups.join("-") : groups.join("");
     }
 
     private validate (): boolean

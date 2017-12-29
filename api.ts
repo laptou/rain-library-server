@@ -1,9 +1,8 @@
 import * as Router from "koa-router";
-import { Database } from "./data/data";
+import { Database } from "./data";
 import * as Model from "./model";
 
 let router = new Router();
-
 
 let bookRouter = new Router();
 
@@ -11,7 +10,7 @@ bookRouter.get("/isbn::isbn", async ctx =>
 {
     try
     {
-        let isbn = Model.Isbn.parse(ctx.params.isbn);
+        let isbn = Model.Isbn.parse(ctx.params.isbn);   
         ctx.response.body = await Database.getBooksByIsbn(isbn);
     }
     catch (err)
@@ -43,9 +42,9 @@ bookRouter.get("/find/title::name", async ctx =>
     }
     catch (err)
     {
-        ctx.response.status = 403;
+        ctx.response.status = 500;
         ctx.response.body = err.message;
-        console.log(err);
+        console.error(err);
     }
 });
 

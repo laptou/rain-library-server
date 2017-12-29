@@ -145,7 +145,7 @@ var IsbnRegion;
 })(IsbnRegion = exports.IsbnRegion || (exports.IsbnRegion = {}));
 function join(arr) {
     return arr.reverse().reduce((prev, current, index) => {
-        return prev + current * 10 ** index;
+        return prev + current * Math.pow(10, index);
     });
 }
 function inRange(start, x, end) {
@@ -579,10 +579,11 @@ class Isbn {
     toJSON() {
         return this.toString();
     }
-    toString() {
-        return [this.prefix, this.registrationGroup, this.registrant,
-            this.publication, [this.check === -1 ? "X" : this.check]]
-            .map(a => a.join("")).join("-");
+    toString(dashes = true) {
+        let data = [this.prefix, this.registrationGroup, this.registrant,
+            this.publication, [this.check === -1 ? "X" : this.check]];
+        let groups = data.map(a => a.join(""));
+        return dashes ? groups.join("-") : groups.join("");
     }
     validate() {
         // verify that the region code exists
