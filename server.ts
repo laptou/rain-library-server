@@ -2,6 +2,8 @@ import chalk from "chalk";
 import * as Koa from "koa";
 import * as Router from "koa-router";
 
+const dev = process.env.NODE_ENV === "development";
+
 let router = new Router();
 router.use(require("koa-bodyparser")());
 router.use(require("koa-json")());
@@ -14,9 +16,41 @@ router.use("*", async (ctx, next) =>
 
 let server = new Koa();
 
+let serverLogger = {
+    webpackLog: function log (info, ... params)
+    {
+        if (dev)
+            console.info(chalk.grey.bold("[WEBPACK] ") + chalk.grey(info), ... params);
+        else console.info(info, ... params);
+    },
+    log: function log (info, ... params)
+    {
+        if (dev)
+            console.info(chalk.blue.bold("[SERVER] ") + chalk.blue(info), ... params);
+        else console.info(info, ... params);
+        
+    },
+    info: function log (info, ... params)
+    {
+        if (dev)
+            console.info(chalk.cyan.bold("[SERVER] ") + chalk.cyan(info), ... params);
+        else console.info(info, ... params);
+        
+    },
+    error: function err (info, ... params)
+    {
+        if (dev)
+            console.error(chalk.cyan.bold("[SERVER] ") + chalk.red(info), ... params);
+        else console.info(info, ... params);
+        
+    }
+};
+
 process.on("uncaughtException", (err) =>
 {
-    console.log("whoops! There was an uncaught error", err);
+    serverLogger.error("Fatal error, process exiting");
+    serverLogger.error(err);
+    
     // do a graceful shutdown,
     // close the database connection etc.
     process.exit(1);
@@ -24,11 +58,10 @@ process.on("uncaughtException", (err) =>
 
 server.use(async (ctx, next) =>
            {
-               console.log(chalk.dim.cyan(`${new Date().toISOString()} - ${ctx.req.method} ${ctx.req.url}`));
+               serverLogger.log(`${new Date().toISOString()} - ${ctx.req.method} ${ctx.req.url}`);
                await next();
            });
 
-const dev = process.env.NODE_ENV === "development";
 const config = require(`../rain-library-client/webpack.${dev ? "dev" : "prod"}`);
 
 if (dev)
@@ -46,7 +79,7 @@ if (dev)
                 }
             },
             hot: {
-                log: (a, ... b) => console.log(chalk.grey(a), ... b),
+                log: serverLogger.webpackLog,
                 path: "/__webpack_hmr",
                 heartbeat: 1000
             }
@@ -57,4 +90,4 @@ server.use(require("koa-static")(config.output.path));
 server.use(router.routes());
 
 server.listen(process.env.PORT || 8000);
-console.info("Server is up and running.");
+serverLogger.info("Server is up and running.");

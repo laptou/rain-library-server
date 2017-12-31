@@ -7,17 +7,34 @@ import { Isbn, Uuid } from "./model";
 mongoose.connect(config.db, { useMongoClient: true });
 require("mongoose").Promise = Promise; // use require() to get rid of TS error
 
+const dev = process.env.NODE_ENV === "development";
+
 let conn = mongoose.connection;
+
+let dbLogger = {
+    log: function log (info)
+    {
+        if (dev)
+            console.info(chalk.greenBright.bold("[DB] ") + chalk.greenBright(info));
+        else console.info(info);
+    },
+    error: function err (info)
+    {
+        if (dev)
+            console.error(chalk.greenBright.bold("[DB] ") + chalk.red(info));
+        else console.error(info);
+    }
+};
 
 conn.on("error", err =>
 {
-    console.error(chalk.bold("api: Failed to connect to database."));
-    console.error(err);
+    dbLogger.error("Failed to connect to database.");
+    dbLogger.error(err);
 });
 
 conn.on("open", () =>
 {
-    console.info(chalk.greenBright.bold("api: Successfully connected to database."));
+    dbLogger.log("Successfully connected to database.");
 });
 
 let schema = {
