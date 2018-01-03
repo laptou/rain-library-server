@@ -1,7 +1,6 @@
-var conn = new Mongo();
-var db = conn.getDB("library");
-
-db.runCommand(
+// var conn = new Mongo();
+// var db = conn.getDB("library");
+printjson(db.runCommand(
     {
         "collMod": "books",
         "validator":
@@ -9,22 +8,25 @@ db.runCommand(
                 "$jsonSchema":
                     {
                         bsonType: "object",
-                        required: ["isbn", "name", "authors"],
+                        required: ["isbn", "name", "authors", "year"],
                         properties:
                             {
                                 name:
                                     {
-                                        bsonType: "string",
-                                        description: "must be a string and is required"
+                                        bsonType: "string"
                                     },
-                                isbn: {
-                                    bsonType: "string",
-                                    pattern: "^[0-9]{13}$"
-                                },
+                                isbn:
+                                    {
+                                        bsonType: "string",
+                                        pattern: "^[0-9]{13}$"
+                                    },
+                                year:
+                                    {
+                                        bsonType: "int"
+                                    },
                                 genre:
                                     {
                                         bsonType: "array",
-                                        description: "must be an array and is not required",
                                         items:
                                             {
                                                 bsonType: "string",
@@ -72,8 +74,9 @@ db.runCommand(
                             }
                     }
             }
-    });
-db.runCommand(
+    }));
+
+printjson(db.runCommand(
     {
         "collMod": "people",
         "validator":
@@ -81,7 +84,7 @@ db.runCommand(
                 "$jsonSchema":
                     {
                         bsonType: "object",
-                        required: ["name"],
+                        required: ["name", "permissions"],
                         properties:
                             {
                                 name:
@@ -99,15 +102,57 @@ db.runCommand(
                                                         bsonType: "string"
                                                     }
                                             }
+                                    },
+                                password:
+                                    {
+                                        bsonType: "object",
+                                        required: ["hash", "salt"],
+                                        properties:
+                                            {
+                                                hash:
+                                                    {
+                                                        bsonType: "binData"
+                                                    },
+                                                salt:
+                                                    {
+                                                        bsonType: "binData"
+                                                    }
+                                            }
+                                    },
+                                permissions:
+                                    {
+                                        bsonType: "array",
+                                        items:
+                                            {
+                                                bsonType: "string",
+                                                enum: ["check_out",
+                                                       "place_hold",
+                                                       "modify_hold",
+                                                       "modify_book",
+                                                       "modify_fine",
+                                                       "modify_person",
+                                                       "admin",
+                                                       "author",
+                                                       "user"]
+                    }
                                     }
-                            }
+            }
                     }
             }
-    });
+    }));
 
-db.people.createIndex({ "name.first": "text", "name.last": "text" });
-db.books.createIndex({ "name": "text" });
-db.people.update(
+printjson(db.people.createIndex(
+    {
+        "name.first": "text",
+        "name.last": "text"
+    }));
+
+printjson(db.books.createIndex(
+    {
+        "name": "text"
+    }));
+
+printjson(db.people.update(
     {
         "_id": ObjectId("5a400a88da662e0ec88f88f3")
     },
@@ -116,26 +161,47 @@ db.people.update(
             {
                 "first": "Alexandre",
                 "last": "Dumas"
-            }
+    },
+        "permissions": ["author"]
     },
     {
         upsert: true
-    });
-db.books.update(
+    }));
+
+printjson(db.people.update(
+    {
+        "_id": ObjectId("5a4c0c178ecdbf1ea814bc6a")
+    },
+    {
+        "name":
+            {
+                "first": "Ibiyemi",
+                "last": "Abiodun"
+            },
+        "permissions": ["admin", "user"]
+    },
+    {
+        upsert: true
+    }));
+
+printjson(db.books.update(
     {
         "_id": ObjectId("5a400cf0da662e0ec88f88f4")
     },
     {
-        "name": "The Count of Monte Cristo",
-        "edition": [
+        name: "The Count of Monte Cristo",
+        editions: [
             {
                 "publisher": "Heehee Publishing",
-                "version": 3
+                "version": NumberInt(3)
             }],
-        "authors": [ObjectId("5a400a88da662e0ec88f88f3")],
-        "genre": ["mystery"],
+        authors: [ObjectId("5a400a88da662e0ec88f88f3")],
+        genre: ["mystery", "egg"],
+        year: NumberInt(1845),
         isbn: "9780553213508"
     },
     {
         upsert: true
-    });
+    }));
+
+print("done");

@@ -6,6 +6,7 @@
   "dependencies": {
     "@types/webpack-env": "^1.13.3",
     "async": "^2.5.0",
+    "bcrypt": "^1.0.3",
     "bluebird": "^3.5.1",
     "chalk": "^2.3.0",
     "clean-webpack-plugin": "^0.1.17",
