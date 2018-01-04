@@ -69,16 +69,16 @@ export class Logger
         switch (severity)
         {
             case LogSeverity.Log:
-                console.log(this.colors.tag(`[${this.source}] `) + this.colors.log(a, ... b));
+                console.log(this.colors.tag(`[${this.source.toUpperCase()}] `) + this.colors.log(a, ... b));
                 break;
             case LogSeverity.Info:
-                console.log(this.colors.tag(`[${this.source}] `) + this.colors.info(a, ... b));
+                console.log(this.colors.tag(`[${this.source.toUpperCase()}] `) + this.colors.info(a, ... b));
                 break;
             case LogSeverity.Warning:
-                console.log(this.colors.tag(`[${this.source}] `) + this.colors.warn(a, ... b));
+                console.log(this.colors.tag(`[${this.source.toUpperCase()}] `) + this.colors.warn(a, ... b));
                 break;
             case LogSeverity.Error:
-                console.log(this.colors.tag(`[${this.source}] `) + this.colors.error(a, ... b));
+                console.log(this.colors.tag(`[${this.source.toUpperCase()}] `) + this.colors.error(a, ... b));
                 break;
         }
     }

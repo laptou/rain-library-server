@@ -1,5 +1,12 @@
 import * as Koa from "koa";
-import * as Router from "koa-router";
+import * as KoaBodyParser from "koa-bodyparser";
+import * as KoaJson from "koa-json";
+import * as KoaPassport from "koa-passport";
+import * as KoaRouter from "koa-router";
+import * as KoaSession from "koa-session";
+import * as KoaStatic from "koa-static";
+import * as KoaWebpack from "koa-webpack";
+
 import { ApiRouter } from "./api";
 import { AuthRouter } from "./auth";
 import { Logger, LogSource } from "./util";
@@ -18,9 +25,15 @@ process.on("uncaughtException", (err) =>
 
 const dev = process.env.NODE_ENV === "development";
 
-let router = new Router();
-router.use(require("koa-bodyparser")());
-router.use(require("koa-json")());
+const server = new Koa();
+const router = new KoaRouter();
+
+router.use(KoaSession(server));
+router.use(KoaBodyParser());
+router.use(KoaJson());
+router.use(KoaPassport.initialize());
+router.use(KoaPassport.session());
+
 router.use("/api", ApiRouter.routes());
 router.use("/auth", AuthRouter.routes());
 router.use("*", async (ctx, next) =>
@@ -28,10 +41,6 @@ router.use("*", async (ctx, next) =>
     ctx.status = 404;
     await next();
 });
-
-const server = new Koa();
-
-
 
 server.use(async (ctx, next) =>
            {
@@ -44,8 +53,8 @@ const config = require(`../rain-library-client/webpack.${dev ? "dev" : "prod"}`)
 if (dev)
 {
     const compiler = require("webpack")(config);
-    
-    server.use(require("koa-webpack")(
+    const webpackLog = new Logger(LogSource.Webpack);
+    server.use(KoaWebpack(
         {
             compiler,
             dev: {
@@ -56,14 +65,15 @@ if (dev)
                 }
             },
             hot: {
-                log: new Logger(LogSource.Webpack).log,
+                log: webpackLog.log.bind(webpackLog),
                 path: "/__webpack_hmr",
                 heartbeat: 1000
             }
         }));
 }
 
-server.use(require("koa-static")(config.output.path));
+server.keys = ["<\xd2Oa\x9f\xfa\xe2\xc6\xdad \xcf\x18=\xf5h.\xff\xb2\xd3\x02M.vI\x9eN\xe7'\xa6\xc8I\xd62J\xbe"];
+server.use(KoaStatic(config.output.path));
 server.use(router.routes());
 
 server.listen(process.env.PORT || 8000);

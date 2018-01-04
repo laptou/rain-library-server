@@ -1,8 +1,8 @@
-import chalk from "chalk";
 import * as mongoose from "mongoose";
 import * as regexEscape from "regex-escape";
 import * as config from "./config";
 import { Isbn, Uuid } from "./model";
+import { Logger, LogSource } from "./util";
 
 mongoose.connect(config.db, { useMongoClient: true });
 require("mongoose").Promise = Promise; // use require() to get rid of TS error
@@ -11,30 +11,17 @@ const dev = process.env.NODE_ENV === "development";
 
 let conn = mongoose.connection;
 
-let dbLogger = {
-    log: function log (info)
-    {
-        if (dev)
-            console.info(chalk.greenBright.bold("[DB] ") + chalk.greenBright(info));
-        else console.info(info);
-    },
-    error: function err (info)
-    {
-        if (dev)
-            console.error(chalk.greenBright.bold("[DB] ") + chalk.red(info));
-        else console.error(info);
-    }
-};
+let dbLogger = new Logger(LogSource.Database);
 
 conn.on("error", err =>
 {
-    dbLogger.error("Failed to connect to database.");
-    dbLogger.error(err);
+    dbLogger.err("Failed to connect to database.");
+    dbLogger.err(err);
 });
 
 conn.on("open", () =>
 {
-    dbLogger.log("Successfully connected to database.");
+    dbLogger.info("Successfully connected to database.");
 });
 
 let schema = {

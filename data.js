@@ -8,35 +8,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const chalk_1 = require("chalk");
 const mongoose = require("mongoose");
 const regexEscape = require("regex-escape");
 const config = require("./config");
 const model_1 = require("./model");
+const util_1 = require("./util");
 mongoose.connect(config.db, { useMongoClient: true });
 require("mongoose").Promise = Promise; // use require() to get rid of TS error
 const dev = process.env.NODE_ENV === "development";
 let conn = mongoose.connection;
-let dbLogger = {
-    log: function log(info) {
-        if (dev)
-            console.info(chalk_1.default.greenBright.bold("[DB] ") + chalk_1.default.greenBright(info));
-        else
-            console.info(info);
-    },
-    error: function err(info) {
-        if (dev)
-            console.error(chalk_1.default.greenBright.bold("[DB] ") + chalk_1.default.red(info));
-        else
-            console.error(info);
-    }
-};
+let dbLogger = new util_1.Logger(util_1.LogSource.Database);
 conn.on("error", err => {
-    dbLogger.error("Failed to connect to database.");
-    dbLogger.error(err);
+    dbLogger.err("Failed to connect to database.");
+    dbLogger.err(err);
 });
 conn.on("open", () => {
-    dbLogger.log("Successfully connected to database.");
+    dbLogger.info("Successfully connected to database.");
 });
 let schema = {
     person: new mongoose.Schema({
