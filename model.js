@@ -145,7 +145,7 @@ var IsbnRegion;
 })(IsbnRegion = exports.IsbnRegion || (exports.IsbnRegion = {}));
 function join(arr) {
     return arr.reverse().reduce((prev, current, index) => {
-        return prev + current * Math.pow(10, index);
+        return prev + current * 10 ** index;
     });
 }
 function inRange(start, x, end) {

@@ -99,3 +99,18 @@ export enum LogSeverity
     Info,
     Log
 }
+
+export abstract class Async
+{
+    public static promise<T> (func: (a1, cb: (err, result: T) => void) => any, a1): Promise<T>
+    {
+        return new Promise((resolve, reject) =>
+                           {
+                               func(a1, (err, result) =>
+                               {
+                                   if (err) reject(err);
+                                   resolve(result);
+                               });
+                           });
+    }
+}

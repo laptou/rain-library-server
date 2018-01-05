@@ -1,7 +1,7 @@
 import * as mongoose from "mongoose";
 import * as regexEscape from "regex-escape";
 import * as config from "./config";
-import { Isbn, Uuid } from "./model";
+import { Isbn } from "./model";
 import { Logger, LogSource } from "./util";
 
 mongoose.connect(config.db, { useMongoClient: true });
@@ -25,12 +25,13 @@ conn.on("open", () =>
 });
 
 let schema = {
-    person: new mongoose.Schema(
+    Person: new mongoose.Schema(
         {
-            name: { first: String, last: String },
-            permissions: [{ type: String }]
+            name: { first: String, last: String, full: String },
+            permissions: [{ type: String }],
+            password: { hash: String, salt: String }
         }),
-    book: new mongoose.Schema(
+    Book: new mongoose.Schema(
         {
             name: String,
             edition: [{ version: Number, publisher: String }],
@@ -39,36 +40,59 @@ let schema = {
         })
 };
 
-let model = {
-    person: mongoose.model("Person", schema.person),
-    book: mongoose.model("Book", schema.book)
+let Model: { Person: mongoose.Model<Person>; Book: mongoose.Model<mongoose.Document> } = {
+    Person: mongoose.model<Person>("Person", schema.Person),
+    Book: mongoose.model("Book", schema.Book)
 };
+
+export declare interface Person extends mongoose.Document
+{
+    name: { first: string, last: string, full: string };
+    permissions: string[];
+    password: { hash: string, salt: string };
+}
 
 export class Database
 {
-    static async findBooksByTitle (search: string, populateAuthors: boolean = true)
+    static Model = Model;
+    
+    static async addPerson (person: Person)
     {
-        let query = model.book.find({ name: { $regex: `^${regexEscape(search)}`, $options: "i" } });
+        await new Model.Book(person).save();
+    }
+    
+    static async findBooksByTitle (search: string, populate: boolean = true)
+    {
+        let query = Model.Book.find({ name: { $regex: `^${regexEscape(search)}`, $options: "i" } });
         
-        if (populateAuthors)
+        if (populate)
             query = query.populate("authors");
         
         return await query.exec();
     }
     
-    static async getAuthorById (id: string | Uuid)
-    {
-    
-    }
-    
-    static async getBooksByIsbn (isbn: Isbn | string, populateAuthors: boolean = true)
+    static async getBooksByIsbn (isbn: Isbn | string, populate: boolean = true)
     {
         const isbnStr = isbn instanceof Isbn ? isbn.toString(false) : isbn.replace("-", "");
-        
-        let query = model.book.find("isbn", isbnStr);
-        
-        if (populateAuthors)
+    
+        let query = Model.Book.find("isbn", isbnStr);
+    
+        if (populate)
             query = query.populate("authors");
+    
+        return await query.exec();
+    }
+    
+    static async getPersonById (id: string)
+    {
+        let query = Model.Book.findById(id);
+        
+        return await query.exec();
+    }
+    
+    static async getPersonByUsername (name: string)
+    {
+        let query = Model.Person.find({ "name.full": name });
         
         return await query.exec();
     }

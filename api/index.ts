@@ -4,5 +4,5 @@ import { PersonRouter } from "./person";
 
 export const ApiRouter = new Router();
 
-ApiRouter.use("/book", BookRouter.routes());
-ApiRouter.use("/person", PersonRouter.routes());
+ApiRouter.use("/Book", BookRouter.routes());
+ApiRouter.use("/Person", PersonRouter.routes());
