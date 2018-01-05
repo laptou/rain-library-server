@@ -61,9 +61,7 @@ printjson(db.runCommand(
                         }
                     },
                     password: {
-                        bsonType: "object",
-                        required: ["hash", "salt"],
-                        properties: { hash: { bsonType: "string" }, salt: { bsonType: "string" } }
+                        bsonType: "string"
                     },
                     permissions: {
                         bsonType: "array",

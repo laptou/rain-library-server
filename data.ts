@@ -29,7 +29,7 @@ let schema = {
         {
             name: { first: String, last: String, full: String },
             permissions: [{ type: String }],
-            password: { hash: String, salt: String }
+            password: String
         }),
     Book: new mongoose.Schema(
         {
@@ -49,7 +49,7 @@ export declare interface Person extends mongoose.Document
 {
     name: { first: string, last: string, full: string };
     permissions: string[];
-    password: { hash: string, salt: string };
+    password: string;
 }
 
 export class Database
@@ -92,7 +92,7 @@ export class Database
     
     static async getPersonByUsername (name: string)
     {
-        let query = Model.Person.find({ "name.full": name });
+        let query = Model.Person.findOne({ "name.full": name });
         
         return await query.exec();
     }

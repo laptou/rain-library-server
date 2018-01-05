@@ -21,7 +21,7 @@ let schema = {
     Person: new mongoose.Schema({
         name: { first: String, last: String, full: String },
         permissions: [{ type: String }],
-        password: { hash: String, salt: String }
+        password: String
     }),
     Book: new mongoose.Schema({
         name: String,
@@ -56,7 +56,7 @@ class Database {
         return await query.exec();
     }
     static async getPersonByUsername(name) {
-        let query = Model.Person.find({ "name.full": name });
+        let query = Model.Person.findOne({ "name.full": name });
         return await query.exec();
     }
 }
