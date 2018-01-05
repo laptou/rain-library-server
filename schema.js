@@ -6,6 +6,7 @@ printjson(db.runCommand(
                 bsonType: "object",
                 required: ["isbn", "name", "authors", "year"],
                 properties: {
+
                     name: { bsonType: "string" },
                     isbn: { bsonType: "string", pattern: "^[0-9]{13}$" },
                     year: { bsonType: "int" },
@@ -51,13 +52,13 @@ printjson(db.runCommand(
                 bsonType: "object",
                 required: ["name", "permissions"],
                 properties: {
+                    username: { bsonType: "string" },
                     name: {
                         bsonType: "object",
-                        required: ["first", "last", "full"],
+                        required: ["first", "last"],
                         properties: {
                             first: { bsonType: "string" },
-                            last: { bsonType: "string" },
-                            full: { bsonType: "string" }
+                            last: { bsonType: "string" }
                         }
                     },
                     password: {
@@ -83,20 +84,23 @@ printjson(db.runCommand(
         }
     }));
 
-printjson(db.people.createIndex({ "name.full": "text" }));
-printjson(db.books.createIndex({ "name": "text" }));
+printjson(db.people.createIndex({ "username": 1 },
+                                {
+                                    unique: true,
+                                    partialFilterExpression: { username: { $exists: true } },
+                                    name: "Username",
+                                    collation: { locale: "en", strength: 1 }
+                                }));
+printjson(db.people.createIndex({ "name.first": 1, "name.last": 1 },
+                                { name: "Full Name", collation: { locale: "en", strength: 1 } }));
+
+printjson(db.books.createIndex({ "name": 1 }, { name: "Name (Collated)", collation: { locale: "en", strength: 1 } }));
+printjson(db.books.createIndex({ "name": "text" }, { name: "Name (FTS)" }));
 
 printjson(db.people.update({ _id: ObjectId("5a400a88da662e0ec88f88f3") },
                            {
-                               name: { first: "Alexandre", last: "Dumas", full: "Alexandre Dumas" },
+                               name: { first: "Alexandre", last: "Dumas" },
                                permissions: ["author"]
-                           },
-                           { upsert: true }));
-
-printjson(db.people.update({ "_id": ObjectId("5a4c0c178ecdbf1ea814bc6a") },
-                           {
-                               name: { first: "Ibiyemi", last: "Abiodun", full: "Ibiyemi Abiodun" },
-                               permissions: ["admin", "user"]
                            },
                            { upsert: true }));
 

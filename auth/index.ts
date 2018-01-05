@@ -38,12 +38,6 @@ KoaPassport.use("local-register", new LocalStrategy(
             {
                 first = req.body.firstName;
                 last = req.body.lastName;
-    
-                if (first + " " + last !== username)
-                {
-                    done(null, null, { message: "Username must be the first name and last name concatenated." });
-                    valid = false;
-                }
             }
             else
             {
@@ -57,7 +51,8 @@ KoaPassport.use("local-register", new LocalStrategy(
                 let hash = await bcrypt.hash(password, await bcrypt.genSalt(12));
         
                 person = new Database.Model.Person();
-                person.name = { full: username, first, last };
+                person.username = username;
+                person.name = { first, last };
                 person.permissions = ["user"];
                 person.password = hash;
                 await person.save({ safe: true });

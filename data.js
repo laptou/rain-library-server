@@ -19,7 +19,8 @@ conn.on("open", () => {
 });
 let schema = {
     Person: new mongoose.Schema({
-        name: { first: String, last: String, full: String },
+        username: String,
+        name: { first: String, last: String },
         permissions: [{ type: String }],
         password: String
     }),
@@ -45,7 +46,8 @@ class Database {
         return await query.exec();
     }
     static async getBooksByIsbn(isbn, populate = true) {
-        const isbnStr = isbn instanceof model_1.Isbn ? isbn.toString(false) : isbn.replace("-", "");
+        const isbnStr = isbn instanceof model_1.Isbn ? isbn.toString(false) :
+            isbn.replace("-", "");
         let query = Model.Book.find("isbn", isbnStr);
         if (populate)
             query = query.populate("authors");
@@ -56,7 +58,7 @@ class Database {
         return await query.exec();
     }
     static async getPersonByUsername(name) {
-        let query = Model.Person.findOne({ "name.full": name });
+        let query = Model.Person.findOne({ "username": name }, null, { collation: { locale: "en", strength: 1 } });
         return await query.exec();
     }
 }

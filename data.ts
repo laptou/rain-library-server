@@ -27,7 +27,8 @@ conn.on("open", () =>
 let schema = {
     Person: new mongoose.Schema(
         {
-            name: { first: String, last: String, full: String },
+            username: String,
+            name: { first: String, last: String },
             permissions: [{ type: String }],
             password: String
         }),
@@ -47,7 +48,8 @@ let Model: { Person: mongoose.Model<Person>; Book: mongoose.Model<mongoose.Docum
 
 export declare interface Person extends mongoose.Document
 {
-    name: { first: string, last: string, full: string };
+    username: string;
+    name: { first: string, last: string };
     permissions: string[];
     password: string;
 }
@@ -74,7 +76,7 @@ export class Database
     static async getBooksByIsbn (isbn: Isbn | string, populate: boolean = true)
     {
         const isbnStr = isbn instanceof Isbn ? isbn.toString(false) : isbn.replace("-", "");
-    
+        
         let query = Model.Book.find("isbn", isbnStr);
     
         if (populate)
@@ -92,7 +94,8 @@ export class Database
     
     static async getPersonByUsername (name: string)
     {
-        let query = Model.Person.findOne({ "name.full": name });
+        let query = Model.Person.findOne({ "username": name }, null,
+                                         { collation: { locale: "en", strength: 1 } });
         
         return await query.exec();
     }
