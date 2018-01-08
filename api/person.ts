@@ -1,5 +1,4 @@
 import * as Router from "koa-router";
-import * as model from "../model";
 
 export const PersonRouter = new Router();
 
@@ -7,7 +6,7 @@ PersonRouter.get("/id::id", async ctx =>
 {
     try
     {
-        const id = model.Uuid.parse(ctx.params.id);
+        // const id = model.Uuid.parse(ctx.params.id);
         // ctx.response.body = await Database.getPerson(id);
     }
     catch (err)

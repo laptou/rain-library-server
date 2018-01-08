@@ -53,10 +53,19 @@ export class Logger
                     error: chalk.redBright.bold
                 };
                 break;
+            case LogSource.Auth:
+                this.colors = {
+                    tag: chalk.magentaBright.bold,
+                    log: chalk.grey,
+                    info: chalk.magenta,
+                    warn: chalk.yellow,
+                    error: chalk.redBright.bold
+                };
+                break;
         }
     }
     
-    err (a: any, ... b: any[]) { this.write(LogSeverity.Error, a, ... b); }
+    error (a: any, ... b: any[]) { this.write(LogSeverity.Error, a, ... b); }
     
     info (a: any, ... b: any[]) { this.write(LogSeverity.Info, a, ... b); }
     
@@ -86,6 +95,7 @@ export class Logger
 
 export enum LogSource
 {
+    Auth = "auth",
     Webpack = "webpack",
     Api = "api",
     Server = "server",

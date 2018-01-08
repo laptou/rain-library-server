@@ -1,19 +1,24 @@
 import * as bcrypt from "bcrypt";
 import * as KoaPassport from "koa-passport";
 import * as Router from "koa-router";
+import { IMiddleware } from "koa-router";
 
 import { Strategy as LocalStrategy } from "passport-local";
 
-import { Database } from "../data";
+import { Database, Person } from "../data";
+import { Logger, LogSource } from "../util";
 
-KoaPassport.serializeUser((user: any, done) =>
+const logger = new Logger(LogSource.Auth);
+
+KoaPassport.serializeUser((user: Person, done) =>
                           {
-                              done(null, user.id);
+                              done(null, { id: user.id, name: user.name, username: user.username });
                           });
 
-KoaPassport.deserializeUser((id: string, done) =>
+KoaPassport.deserializeUser(async (user: { id: string }, done) =>
                             {
-                                done(null, Database.getPersonById(id));
+                                const doc = await Database.getPersonById(user.id);
+                                done(null, doc);
                             });
 
 KoaPassport.use("local-register", new LocalStrategy(
@@ -47,16 +52,16 @@ KoaPassport.use("local-register", new LocalStrategy(
     
             if (valid)
             {
-        
+    
                 let hash = await bcrypt.hash(password, await bcrypt.genSalt(12));
-        
+    
                 person = new Database.Model.Person();
                 person.username = username;
                 person.name = { first, last };
                 person.permissions = ["user"];
                 person.password = hash;
                 await person.save({ safe: true });
-        
+    
                 done(null, person, { message: "User created." });
             }
         }
@@ -98,6 +103,34 @@ KoaPassport.use("local-login", new LocalStrategy(
     }));
 
 export const AuthRouter = new Router();
-AuthRouter.post("/register", KoaPassport.authenticate("local-register"));
+export const AuthWall: IMiddleware = async function (ctx, next)
+{
+    if (ctx.isUnauthenticated())
+        if (ctx.headers["accept"] === "application/json")
+            ctx.throw(401);
+        else
+            ctx.redirect("/");
+    else await next();
+};
 
-AuthRouter.post("/login", KoaPassport.authenticate("local-login"));
+AuthRouter.get("/me", AuthWall, async ctx =>
+{
+    const user: Person = ctx.state.user;
+    ctx.body = { id: user.id, name: user.name, username: user.username };
+});
+
+AuthRouter.post("/register", KoaPassport.authenticate("local-register"),
+                async ctx =>
+                {
+                    // if it gets here, that means it got past Passport
+                    ctx.status = 200;
+                });
+
+AuthRouter.post("/login", KoaPassport.authenticate("local-login"),
+                async ctx =>
+                {
+                    // if it gets here, that means it got past Passport
+                    ctx.status = 200;
+                });
+
+// AuthRouter.post("*", );

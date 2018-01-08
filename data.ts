@@ -1,7 +1,5 @@
 import * as mongoose from "mongoose";
-import * as regexEscape from "regex-escape";
 import * as config from "./config";
-import { Isbn } from "./model";
 import { Logger, LogSource } from "./util";
 
 mongoose.connect(config.db, { useMongoClient: true });
@@ -15,8 +13,8 @@ let dbLogger = new Logger(LogSource.Database);
 
 conn.on("error", err =>
 {
-    dbLogger.err("Failed to connect to database.");
-    dbLogger.err(err);
+    dbLogger.error("Failed to connect to database.");
+    dbLogger.error(err);
 });
 
 conn.on("open", () =>
@@ -35,7 +33,7 @@ let schema = {
     Book: new mongoose.Schema(
         {
             name: String,
-            edition: [{ version: Number, publisher: String }],
+            editions: [{ version: Number, publisher: String }],
             authors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Person" }],
             genre: [{ type: String }]
         })
@@ -48,10 +46,18 @@ let Model: { Person: mongoose.Model<Person>; Book: mongoose.Model<mongoose.Docum
 
 export declare interface Person extends mongoose.Document
 {
-    username: string;
+    username: string | null;
     name: { first: string, last: string };
     permissions: string[];
     password: string;
+}
+
+export declare interface Book extends mongoose.Document
+{
+    name: string;
+    edition: { version: number, publisher: string } [];
+    authors: Person[] | string[];
+    genre: string[];
 }
 
 export class Database
@@ -63,22 +69,27 @@ export class Database
         await new Model.Book(person).save();
     }
     
-    static async findBooksByTitle (search: string, populate: boolean = true)
+    static async getBookById (id: string, populate: boolean = true)
     {
-        let query = Model.Book.find({ name: { $regex: `^${regexEscape(search)}`, $options: "i" } });
+        let query = Model.Book.findById(id);
+    
+        return await query.exec();
+    }
+    
+    static async getBooksByIsbn (isbn: string, populate: boolean = true)
+    {
+        let query = Model.Book.find("isbn", isbn);
         
         if (populate)
             query = query.populate("authors");
         
-        return await query.exec();
+        return <Book[]>await query.exec();
     }
     
-    static async getBooksByIsbn (isbn: Isbn | string, populate: boolean = true)
+    static async getBooksByTitle (title: string, populate: boolean = true)
     {
-        const isbnStr = isbn instanceof Isbn ? isbn.toString(false) : isbn.replace("-", "");
+        let query = Model.Book.find({ name: title }).collation({ locale: "en", strength: 1 });
         
-        let query = Model.Book.find("isbn", isbnStr);
-    
         if (populate)
             query = query.populate("authors");
     
@@ -87,7 +98,7 @@ export class Database
     
     static async getPersonById (id: string)
     {
-        let query = Model.Book.findById(id);
+        let query = Model.Person.findById(id);
         
         return await query.exec();
     }
@@ -96,6 +107,26 @@ export class Database
     {
         let query = Model.Person.findOne({ "username": name }, null,
                                          { collation: { locale: "en", strength: 1 } });
+    
+        return await query.exec();
+    }
+    
+    static async searchBooks (search: string, populate: boolean = true)
+    {
+        let query = Model.Book.find({ $text: { $search: search } });
+        
+        if (populate)
+            query = query.populate("authors");
+        
+        return await query.exec();
+    }
+    
+    static async searchBooksByTitle (search: string, populate: boolean = true)
+    {
+        let query = Model.Book.find({ name: { $regex: `^${search}`, $options: "i" } });
+        
+        if (populate)
+            query = query.populate("authors");
         
         return await query.exec();
     }
