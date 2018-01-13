@@ -36,12 +36,34 @@ let schema = {
             editions: [{ version: Number, publisher: String }],
             authors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Person" }],
             genre: [{ type: String }]
+        }),
+    Checkout: new mongoose.Schema(
+        {
+            start: Date,
+            end: Date,
+            penalty_factor: Number,
+            book: { type: mongoose.Schema.Types.ObjectId, ref: "Book" },
+            person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
+        }),
+    Hold: new mongoose.Schema(
+        {
+            date: Date,
+            completed: Boolean,
+            book: { type: mongoose.Schema.Types.ObjectId, ref: "Book" },
+            person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
         })
 };
 
-let Model: { Person: mongoose.Model<Person>; Book: mongoose.Model<mongoose.Document> } = {
+schema.Person.set("toJSON", { virtuals: true });
+schema.Book.set("toJSON", { virtuals: true });
+schema.Checkout.set("toJSON", { virtuals: true });
+schema.Hold.set("toJSON", { virtuals: true });
+
+let Model = {
     Person: mongoose.model<Person>("Person", schema.Person),
-    Book: mongoose.model("Book", schema.Book)
+    Book: mongoose.model<Book>("Book", schema.Book),
+    Hold: mongoose.model<Hold>("Hold", schema.Hold),
+    Checkout: mongoose.model<Checkout>("Checkout", schema.Checkout)
 };
 
 export declare interface Person extends mongoose.Document
@@ -60,6 +82,23 @@ export declare interface Book extends mongoose.Document
     genre: string[];
 }
 
+export interface Checkout extends mongoose.Document
+{
+    start: Date;
+    end: Date | null;
+    penalty_factor: number;
+    book: string | Book;
+    person: string | Person;
+}
+
+export interface Hold extends mongoose.Document
+{
+    date: Date;
+    completed: boolean;
+    book: string | Book;
+    person: string | Person;
+}
+
 export class Database
 {
     static Model = Model;
@@ -69,16 +108,16 @@ export class Database
         await new Model.Book(person).save();
     }
     
-    static async getBookById (id: string, populate: boolean = true)
+    static async getBookById (id: string, populate: boolean = true): Promise<Book>
     {
         let query = Model.Book.findById(id);
     
         return await query.exec();
     }
     
-    static async getBooksByIsbn (isbn: string, populate: boolean = true)
+    static async getBooksByIsbn (isbn: string, populate: boolean = true): Promise<Book[]>
     {
-        let query = Model.Book.find("isbn", isbn);
+        let query = Model.Book.find({ isbn });
         
         if (populate)
             query = query.populate("authors");
@@ -86,7 +125,7 @@ export class Database
         return <Book[]>await query.exec();
     }
     
-    static async getBooksByTitle (title: string, populate: boolean = true)
+    static async getBooksByTitle (title: string, populate: boolean = true): Promise<Book[]>
     {
         let query = Model.Book.find({ name: title }).collation({ locale: "en", strength: 1 });
         
@@ -96,14 +135,27 @@ export class Database
         return await query.exec();
     }
     
-    static async getPersonById (id: string)
+    static async getCheckedOut (userId: string): Promise<Checkout[]>
+    {
+        return await Model.Checkout
+                          .find({
+                                    person: userId,
+                                    $or: [{ end: { $gte: new Date() } }, { end: null }]
+                                })
+                          .populate({
+                                        path: "book",
+                                        populate: { path: "authors" }
+                                    });
+    }
+    
+    static async getPersonById (id: string): Promise<Person>
     {
         let query = Model.Person.findById(id);
         
         return await query.exec();
     }
     
-    static async getPersonByUsername (name: string)
+    static async getPersonByUsername (name: string): Promise<Person>
     {
         let query = Model.Person.findOne({ "username": name }, null,
                                          { collation: { locale: "en", strength: 1 } });
@@ -111,23 +163,30 @@ export class Database
         return await query.exec();
     }
     
-    static async searchBooks (search: string, populate: boolean = true)
+    static async searchBooks (search: string, populate: boolean = true, limit?: number): Promise<Book[]>
     {
         let query = Model.Book.find({ $text: { $search: search } });
+    
+        if (limit)
+            query = query.limit(limit);
         
         if (populate)
             query = query.populate("authors");
-        
+    
         return await query.exec();
     }
     
-    static async searchBooksByTitle (search: string, populate: boolean = true)
+    static async searchBooksByTitle (search: string, populate: boolean = true, limit?: number): Promise<Book[]>
     {
         let query = Model.Book.find({ name: { $regex: `^${search}`, $options: "i" } });
+    
+        if (limit)
+            query = query.limit(limit);
         
         if (populate)
             query = query.populate("authors");
-        
+    
+    
         return await query.exec();
     }
 }

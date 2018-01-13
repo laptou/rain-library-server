@@ -6,7 +6,7 @@ import { IMiddleware } from "koa-router";
 import { Strategy as LocalStrategy } from "passport-local";
 
 import { Database, Person } from "../data";
-import { Logger, LogSource } from "../util";
+import { acceptsJson, Logger, LogSource } from "../util";
 
 const logger = new Logger(LogSource.Auth);
 
@@ -35,16 +35,11 @@ KoaPassport.use("local-register", new LocalStrategy(
                 done(null, null, { message: "User with this name already exists." });
                 valid = false;
             }
-            
-            let first;
-            let last;
     
-            if (req.body.firstName && req.body.lastName)
-            {
-                first = req.body.firstName;
-                last = req.body.lastName;
-            }
-            else
+            let first = req.body.name.first || req.body.firstName;
+            let last = req.body.name.last || req.body.lastName;
+    
+            if (!first || !last)
             {
                 done(null, null, { message: "First and last name are required to create a new user." });
                 valid = false;
@@ -106,7 +101,7 @@ export const AuthRouter = new Router();
 export const AuthWall: IMiddleware = async function (ctx, next)
 {
     if (ctx.isUnauthenticated())
-        if (ctx.headers["accept"] === "application/json")
+        if (acceptsJson(ctx))
             ctx.throw(401);
         else
             ctx.redirect("/");
@@ -117,6 +112,12 @@ AuthRouter.get("/me", AuthWall, async ctx =>
 {
     const user: Person = ctx.state.user;
     ctx.body = { id: user.id, name: user.name, username: user.username };
+});
+
+AuthRouter.get("/logout", AuthWall, async ctx =>
+{
+    ctx.logout();
+    ctx.status = 200;
 });
 
 AuthRouter.post("/register", KoaPassport.authenticate("local-register"),

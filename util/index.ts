@@ -1,4 +1,5 @@
 import { Chalk, default as chalk } from "chalk";
+import * as Koa from "koa";
 
 export class Logger
 {
@@ -65,7 +66,10 @@ export class Logger
         }
     }
     
-    error (a: any, ... b: any[]) { this.write(LogSeverity.Error, a, ... b); }
+    error (a: any, ... b: any[])
+    {
+        this.write(LogSeverity.Error, a, ... b);
+    }
     
     info (a: any, ... b: any[]) { this.write(LogSeverity.Info, a, ... b); }
     
@@ -75,6 +79,9 @@ export class Logger
     
     write (severity: LogSeverity, a: any, ... b: any[])
     {
+        if (a instanceof Error)
+            a = `${a.name}: ${a.message}\n${a.stack}`;
+        
         switch (severity)
         {
             case LogSeverity.Log:
@@ -123,4 +130,10 @@ export abstract class Async
                                });
                            });
     }
+}
+
+export function acceptsJson (ctx: Koa.Context): boolean
+{
+    let types = ctx.headers["accept"].split(",").map(t => t.trim());
+    return types.indexOf("application/json") !== -1;
 }

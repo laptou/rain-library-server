@@ -34,35 +34,30 @@ const router = new KoaRouter();
 
 server.keys = ["<\xd2Oa\x9f\xfa\xe2\xc6\xdad \xcf\x18=\xf5h.\xff\xb2\xd3\x02M.vI\x9eN\xe7'\xa6\xc8I\xd62J\xbe"];
 
-// server.use(async (ctx, next) =>
-//            {
-//                try
-//                {
-//                    await next();
-//                }
-//                catch (err)
-//                {
-//                    ctx.status = err.status || 500;
-//                    ctx.body = err.message;
-//                    ctx.app.emit("error", err, ctx);
-//                }
-//            });
+server.use(async (ctx, next) =>
+           {
+               try
+               {
+                   await next();
+               }
+               catch (err)
+               {
+                   ctx.status = err.status || 500;
+                   ctx.body = err.message;
+                   ctx.app.emit("error", err, ctx);
+               }
+           });
 
 server.use(KoaBodyParser());
 server.use(KoaJson());
 
-server.use(KoaSession({ httpOnly: true }, server));
+server.use(KoaSession({}, server));
 
 server.use(KoaPassport.initialize());
 server.use(KoaPassport.session());
 
 router.use("/api", ApiRouter.routes());
 router.use("/auth", AuthRouter.routes());
-router.use("*", async (ctx, next) =>
-{
-    ctx.status = 404;
-    await next();
-});
 
 const config = require(`../rain-library-client/webpack.${dev ? "dev" : "prod"}`);
 
@@ -100,8 +95,9 @@ if (dev && !apiOnly)
     webpackLog.info("Attached middleware.");
 }
 
-server.use(router.routes());
 server.use(KoaStatic(config.output.path));
+server.use(router.routes());
+// server.use(KoaRewrite(/.*/, "/"));
 
 server.listen(process.env.PORT || 8000);
 logger.info("Server is up and running.");
