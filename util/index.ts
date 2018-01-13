@@ -80,7 +80,7 @@ export class Logger
     write (severity: LogSeverity, a: any, ... b: any[])
     {
         if (a instanceof Error)
-            a = `${a.name}: ${a.message}\n${a.stack}`;
+            a = a.stack;
         
         switch (severity)
         {

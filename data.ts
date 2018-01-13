@@ -189,4 +189,32 @@ export class Database
     
         return await query.exec();
     }
+    
+    static async getBooksByAuthor (person: string | Person, populate = true, limit?: number)
+    {
+        if (typeof person === "string")
+        {
+            let query = Model.Book.find({ authors: person });
+            
+            if (limit)
+                query = query.limit(limit);
+            
+            if (populate)
+                query = query.populate("authors");
+            
+            return await query;
+        }
+        else
+        {
+            let query = Model.Book.find({ authors: person.id });
+            
+            if (limit)
+                query = query.limit(limit);
+            
+            if (populate)
+                query = query.populate("authors");
+            
+            return await query;
+        }
+    }
 }

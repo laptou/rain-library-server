@@ -3,10 +3,12 @@ import * as KoaBodyParser from "koa-bodyparser";
 import * as KoaJson from "koa-json";
 import * as KoaPassport from "koa-passport";
 import * as KoaRouter from "koa-router";
+import * as KoaSend from "koa-send";
 import * as KoaSession from "koa-session";
 import * as KoaStatic from "koa-static";
 import * as KoaWebpack from "koa-webpack";
 import * as Moment from "moment";
+import * as path from "path";
 
 import { ApiRouter } from "./api";
 import { AuthRouter } from "./auth";
@@ -56,10 +58,10 @@ server.use(KoaSession({}, server));
 server.use(KoaPassport.initialize());
 server.use(KoaPassport.session());
 
+const config = require(`../rain-library-client/webpack.${dev ? "dev" : "prod"}`);
+
 router.use("/api", ApiRouter.routes());
 router.use("/auth", AuthRouter.routes());
-
-const config = require(`../rain-library-client/webpack.${dev ? "dev" : "prod"}`);
 
 server.use(async (ctx, next) =>
            {
@@ -67,37 +69,67 @@ server.use(async (ctx, next) =>
                await next();
            });
 
-if (dev && !apiOnly)
+
+if (!apiOnly)
 {
-    const webpackLog = new Logger(LogSource.Webpack);
-    const compiler = require("webpack")(config);
-    webpackLog.log("Loaded configuration.");
-    
-    const middleware = KoaWebpack(
-        {
-            compiler,
-            dev: {
-                publicPath: "/",
-                noInfo: true,
-                stats: {
-                    colors: true
+    if (!dev)
+    {
+        router.use(async ctx =>
+                   {
+                       await KoaSend(ctx, path.join(config.output.path, "index.html"));
+                   });
+        server.use(router.routes());
+    }
+    else
+    {
+        const webpackLog = new Logger(LogSource.Webpack);
+        const compiler = require("webpack")(config);
+        webpackLog.log("Loaded configuration.");
+        
+        const middleware = KoaWebpack(
+            {
+                compiler,
+                dev: {
+                    publicPath: "/",
+                    log: webpackLog.log.bind(webpackLog),
+                    warn: webpackLog.log.bind(webpackLog),
+                    error: webpackLog.log.bind(webpackLog),
+                    noInfo: true,
+                    stats: {
+                        colors: true
+                    }
+                },
+                hot: {
+                    log: webpackLog.log.bind(webpackLog),
+                    path: "/__webpack_hmr",
+                    heartbeat: 1000
                 }
-            },
-            hot: {
-                log: webpackLog.log.bind(webpackLog),
-                path: "/__webpack_hmr",
-                heartbeat: 1000
-            }
+            });
+        
+        const mfs = middleware.dev.fileSystem;
+        
+        router.get("*", async ctx =>
+        {
+            
+            let file = await new Promise(
+                async (resolve, reject) =>
+                {
+                    await mfs.readFile(path.join(config.output.path, "index.html"),
+                                       "utf8",
+                                       (err, result) => err ? reject(err) : resolve(result));
+                });
+            
+            ctx.body = file;
         });
-    
-    server.use(middleware);
-    
-    webpackLog.info("Attached middleware.");
+        
+        server.use(middleware);
+        server.use(router.routes());
+        
+        webpackLog.info("Attached middleware.");
+    }
 }
 
 server.use(KoaStatic(config.output.path));
-server.use(router.routes());
-// server.use(KoaRewrite(/.*/, "/"));
 
 server.listen(process.env.PORT || 8000);
 logger.info("Server is up and running.");
