@@ -63,3 +63,8 @@ BookRouter.get("/checked_out", AuthWall(), async ctx =>
 {
     ctx.response.body = await Database.getCheckedOut(ctx.state.user.id);
 });
+
+BookRouter.get("/checked_out/:id", AuthWall(), async ctx =>
+{
+    ctx.response.body = (await Database.getCheckedOut(ctx.state.user.id, ctx.params.id)).length > 0;
+});

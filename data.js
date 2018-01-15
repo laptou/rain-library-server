@@ -89,13 +89,24 @@ class Database {
             query = query.populate("authors");
         return await query.exec();
     }
-    static async getCheckedOut(userId) {
-        return await exports.Model.Checkout
+
+    static async getCheckedOut (userId, bookId)
+    {
+        let query = exports.Model.Checkout
             .find({
             person: userId,
             $or: [{ end: { $gte: new Date() } }, { end: null }]
-        })
-            .populate({
+                  });
+        if (bookId)
+        {
+            query = exports.Model.Checkout
+                           .find({
+                                     person: userId,
+                                     book: bookId,
+                                     $or: [{ end: { $gte: new Date() } }, { end: null }]
+                                 });
+        }
+        return await query.populate({
             path: "book",
             populate: { path: "authors" }
         });

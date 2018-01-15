@@ -172,14 +172,25 @@ export class Database
         return await query.exec();
     }
     
-    static async getCheckedOut (userId: string): Promise<Checkout[]>
+    static async getCheckedOut (userId: string, bookId?: string): Promise<Checkout[]>
     {
-        return await Model.Checkout
-                          .find({
-                                    person: userId,
-                                    $or: [{ end: { $gte: new Date() } }, { end: null }]
-                                })
-                          .populate({
+        let query = Model.Checkout
+                         .find({
+                                   person: userId,
+                                   $or: [{ end: { $gte: new Date() } }, { end: null }]
+                               });
+    
+        if (bookId)
+        {
+            query = Model.Checkout
+                         .find({
+                                   person: userId,
+                                   book: bookId,
+                                   $or: [{ end: { $gte: new Date() } }, { end: null }]
+                               });
+        }
+    
+        return await query.populate({
                                         path: "book",
                                         populate: { path: "authors" }
                                     });
