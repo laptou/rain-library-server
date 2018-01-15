@@ -38,7 +38,7 @@ let schema = {
     Hold: new mongoose.Schema({
         date: Date,
         completed: Boolean,
-                                  isbn: { type: String },
+        isbn: { type: String },
         person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
     })
 };
@@ -89,22 +89,19 @@ class Database {
             query = query.populate("authors");
         return await query.exec();
     }
-
-    static async getCheckedOut (userId, bookId)
-    {
+    static async getCheckedOut(userId, bookId) {
         let query = exports.Model.Checkout
             .find({
             person: userId,
             $or: [{ end: { $gte: new Date() } }, { end: null }]
-                  });
-        if (bookId)
-        {
+        });
+        if (bookId) {
             query = exports.Model.Checkout
-                           .find({
-                                     person: userId,
-                                     book: bookId,
-                                     $or: [{ end: { $gte: new Date() } }, { end: null }]
-                                 });
+                .find({
+                person: userId,
+                book: bookId,
+                $or: [{ end: { $gte: new Date() } }, { end: null }]
+            });
         }
         return await query.populate({
             path: "book",
