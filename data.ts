@@ -49,7 +49,7 @@ let schema = {
         {
             date: Date,
             completed: Boolean,
-            book: { type: mongoose.Schema.Types.ObjectId, ref: "Book" },
+            isbn: { type: String },
             person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
         })
 };
@@ -92,6 +92,7 @@ export declare interface Book extends mongoose.Document
     authors: Person[] | string[];
     genre: string[];
     rating: number;
+    isbn: string;
 }
 
 export interface Checkout extends mongoose.Document
@@ -107,7 +108,7 @@ export interface Hold extends mongoose.Document
 {
     date: Date;
     completed: boolean;
-    book: string | Book;
+    isbn: string;
     person: string | Person;
 }
 
@@ -193,7 +194,7 @@ export class Database
     
     static async getHoldsForBook (book: string | Book, populate = true): Promise<Hold[]>
     {
-        let query = Model.Hold.find({ book: typeof book === "string" ? book : book.id });
+        let query = Model.Hold.find({ book: typeof book === "string" ? book : book.isbn });
         
         if (populate)
             query = query.populate("person");

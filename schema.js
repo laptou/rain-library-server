@@ -10,10 +10,10 @@ printjson(db.runCommand(
         "validator": {
             "$jsonSchema": {
                 bsonType: "object",
-                required: ["date", "book", "person", "completed"],
+                required: ["date", "isbn", "person", "completed"],
                 properties: {
                     date: { bsonType: "date" },
-                    book: { bsonType: "objectId" },
+                    isbn: { bsonType: "string" },
                     person: { bsonType: "objectId" },
                     completed: { bsonType: "bool" }
                 }
@@ -48,7 +48,6 @@ printjson(db.runCommand(
                 bsonType: "object",
                 required: ["isbn", "name", "authors", "year", "genre"],
                 properties: {
-
                     name: { bsonType: "string" },
                     isbn: { bsonType: "string", pattern: "^[0-9]{13}$" },
                     year: { bsonType: "int" },

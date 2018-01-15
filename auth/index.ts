@@ -121,8 +121,9 @@ export const AuthWall: (... permissions: Permission[]) => IMiddleware = function
                 }
             }
         }
-        
-        if (authenticated) await next();
+    
+        if (authenticated)
+            await next();
         else
         {
             if (acceptsJson(ctx))
@@ -136,7 +137,7 @@ export const AuthWall: (... permissions: Permission[]) => IMiddleware = function
 AuthRouter.get("/me", AuthWall(), async ctx =>
 {
     const user: Person = ctx.state.user;
-    ctx.body = { id: user.id, name: user.name, username: user.username };
+    ctx.body = { id: user.id, name: user.name, username: user.username, permissions: user.permissions };
 });
 
 AuthRouter.get("/logout", AuthWall(), async ctx =>
@@ -145,7 +146,7 @@ AuthRouter.get("/logout", AuthWall(), async ctx =>
     ctx.status = 200;
 });
 
-AuthRouter.post("/register", KoaPassport.authenticate("local-register"),
+AuthRouter.post("/register", AuthWall("admin"), KoaPassport.authenticate("local-register"),
                 async ctx =>
                 {
                     // if it gets here, that means it got past Passport
@@ -158,5 +159,3 @@ AuthRouter.post("/login", KoaPassport.authenticate("local-login"),
                     // if it gets here, that means it got past Passport
                     ctx.status = 200;
                 });
-
-// AuthRouter.post("*", );

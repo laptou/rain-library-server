@@ -38,7 +38,7 @@ let schema = {
     Hold: new mongoose.Schema({
         date: Date,
         completed: Boolean,
-        book: { type: mongoose.Schema.Types.ObjectId, ref: "Book" },
+                                  isbn: { type: String },
         person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
     })
 };
@@ -105,7 +105,7 @@ class Database {
         return await query.exec();
     }
     static async getHoldsForBook(book, populate = true) {
-        let query = exports.Model.Hold.find({ book: typeof book === "string" ? book : book.id });
+        let query = exports.Model.Hold.find({ book: typeof book === "string" ? book : book.isbn });
         if (populate)
             query = query.populate("person");
         return await query.exec();
