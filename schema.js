@@ -66,11 +66,11 @@ printjson(db.runCommand(
                                    "action",
                                    "adult",
                                    "child",
-                                   "erotica"],
+                                   "erotica",
+                                   "test"],
                         },
                         uniqueItems: true,
                         minItems: 1
-
 
                     },
                     authors: { bsonType: "array", items: { bsonType: "objectId" }, uniqueItems: true, minItems: 1 },
@@ -81,7 +81,9 @@ printjson(db.runCommand(
                             version: { bsonType: "int" },
                             publisher: { bsonType: "string" }
                         }
-                    }
+                    },
+                    rating: { bsonType: "double" },
+                    ratingCount: { bsonType: "int" }
                 }
             }
         }

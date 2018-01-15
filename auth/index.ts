@@ -5,7 +5,7 @@ import { IMiddleware } from "koa-router";
 
 import { Strategy as LocalStrategy } from "passport-local";
 
-import { Database, Person } from "../data";
+import { Database, Model, Permission, Person } from "../data";
 import { acceptsJson, Logger, LogSource } from "../util";
 
 const logger = new Logger(LogSource.Auth);
@@ -50,7 +50,7 @@ KoaPassport.use("local-register", new LocalStrategy(
     
                 let hash = await bcrypt.hash(password, await bcrypt.genSalt(12));
     
-                person = new Database.Model.Person();
+                person = new Model.Person();
                 person.username = username;
                 person.name = { first, last };
                 person.permissions = ["user"];
@@ -98,23 +98,48 @@ KoaPassport.use("local-login", new LocalStrategy(
     }));
 
 export const AuthRouter = new Router();
-export const AuthWall: IMiddleware = async function (ctx, next)
+export const AuthWall: (... permissions: Permission[]) => IMiddleware = function (... permissions: string[])
 {
-    if (ctx.isUnauthenticated())
-        if (acceptsJson(ctx))
-            ctx.throw(401);
+    if (permissions.length === 0)
+        permissions = ["user"];
+    
+    return async (ctx, next) =>
+    {
+        let authenticated = ctx.isAuthenticated();
+        
+        if (authenticated)
+        {
+            if (ctx.state.user.permissions.indexOf("admin") !== -1)
+            {
+                for (let permission of permissions)
+                {
+                    if (ctx.state.user.permissions.indexOf(permission) === -1)
+                    {
+                        authenticated = false;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (authenticated) await next();
         else
-            ctx.redirect("/");
-    else await next();
+        {
+            if (acceptsJson(ctx))
+                ctx.status = 401;
+            else
+                ctx.redirect("/");
+        }
+    };
 };
 
-AuthRouter.get("/me", AuthWall, async ctx =>
+AuthRouter.get("/me", AuthWall(), async ctx =>
 {
     const user: Person = ctx.state.user;
     ctx.body = { id: user.id, name: user.name, username: user.username };
 });
 
-AuthRouter.get("/logout", AuthWall, async ctx =>
+AuthRouter.get("/logout", AuthWall(), async ctx =>
 {
     ctx.logout();
     ctx.status = 200;

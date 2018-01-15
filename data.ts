@@ -59,27 +59,39 @@ schema.Book.set("toJSON", { virtuals: true });
 schema.Checkout.set("toJSON", { virtuals: true });
 schema.Hold.set("toJSON", { virtuals: true });
 
-let Model = {
+export let Model = {
     Person: mongoose.model<Person>("Person", schema.Person),
     Book: mongoose.model<Book>("Book", schema.Book),
     Hold: mongoose.model<Hold>("Hold", schema.Hold),
     Checkout: mongoose.model<Checkout>("Checkout", schema.Checkout)
 };
 
+export declare type Permission = "check_out" |
+    "place_hold" |
+    "modify_hold" |
+    "modify_book" |
+    "modify_fine" |
+    "modify_person" |
+    "admin" |
+    "author" |
+    "user" |
+    "test";
+
 export declare interface Person extends mongoose.Document
 {
     username: string | null;
     name: { first: string, last: string };
-    permissions: string[];
+    permissions: Permission[];
     password: string;
 }
 
 export declare interface Book extends mongoose.Document
 {
     name: string;
-    edition: { version: number, publisher: string } [];
+    edition: { version: number, publisher: string };
     authors: Person[] | string[];
     genre: string[];
+    rating: number;
 }
 
 export interface Checkout extends mongoose.Document
@@ -101,18 +113,42 @@ export interface Hold extends mongoose.Document
 
 export class Database
 {
-    static Model = Model;
-    
-    static async addPerson (person: Person)
-    {
-        await new Model.Book(person).save();
-    }
-    
     static async getBookById (id: string, populate: boolean = true): Promise<Book>
     {
         let query = Model.Book.findById(id);
     
+        if (populate)
+            query = query.populate("authors");
+        
         return await query.exec();
+    }
+    
+    static async getBooksByAuthor (person: string | Person, populate = true, limit?: number)
+    {
+        if (typeof person === "string")
+        {
+            let query = Model.Book.find({ authors: person });
+            
+            if (limit)
+                query = query.limit(limit);
+            
+            if (populate)
+                query = query.populate("authors");
+            
+            return await query;
+        }
+        else
+        {
+            let query = Model.Book.find({ authors: person.id });
+            
+            if (limit)
+                query = query.limit(limit);
+            
+            if (populate)
+                query = query.populate("authors");
+            
+            return await query;
+        }
     }
     
     static async getBooksByIsbn (isbn: string, populate: boolean = true): Promise<Book[]>
@@ -155,12 +191,52 @@ export class Database
         return await query.exec();
     }
     
+    static async getHoldsForBook (book: string | Book, populate = true): Promise<Hold[]>
+    {
+        let query = Model.Hold.find({ book: typeof book === "string" ? book : book.id });
+        
+        if (populate)
+            query = query.populate("person");
+        
+        return await query.exec();
+    }
+    
+    static async getHoldsForPerson (person: string | Person, populate = true): Promise<Hold[]>
+    {
+        let query = Model.Hold.find({ person: typeof person === "string" ? person : person.id });
+        
+        if (populate)
+            query = query.populate("book");
+        
+        return await query.exec();
+    }
+    
     static async getPersonByUsername (name: string): Promise<Person>
     {
         let query = Model.Person.findOne({ "username": name }, null,
                                          { collation: { locale: "en", strength: 1 } });
     
         return await query.exec();
+    }
+    
+    static async saveBook (book: Book)
+    {
+        await new Model.Book(book).save();
+    }
+    
+    static async saveCheckout (checkout: Checkout)
+    {
+        await new Model.Checkout(checkout).save();
+    }
+    
+    static async saveHold (hold: Hold)
+    {
+        await new Model.Hold(hold).save();
+    }
+    
+    static async savePerson (person: Person)
+    {
+        await new Model.Book(person).save();
     }
     
     static async searchBooks (search: string, populate: boolean = true, limit?: number): Promise<Book[]>
@@ -186,35 +262,6 @@ export class Database
         if (populate)
             query = query.populate("authors");
     
-    
         return await query.exec();
-    }
-    
-    static async getBooksByAuthor (person: string | Person, populate = true, limit?: number)
-    {
-        if (typeof person === "string")
-        {
-            let query = Model.Book.find({ authors: person });
-            
-            if (limit)
-                query = query.limit(limit);
-            
-            if (populate)
-                query = query.populate("authors");
-            
-            return await query;
-        }
-        else
-        {
-            let query = Model.Book.find({ authors: person.id });
-            
-            if (limit)
-                query = query.limit(limit);
-            
-            if (populate)
-                query = query.populate("authors");
-            
-            return await query;
-        }
     }
 }

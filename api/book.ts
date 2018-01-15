@@ -1,6 +1,6 @@
 import * as Router from "koa-router";
 import { AuthWall } from "../auth";
-import { Book, Database } from "../data";
+import { Book, Database, Model } from "../data";
 import { Logger, LogSource } from "../util";
 import { Linq } from "../util/linq";
 
@@ -15,6 +15,13 @@ BookRouter.get("/isbn/:isbn", async ctx =>
 BookRouter.get("/id/:id", async ctx =>
 {
     ctx.response.body = await Database.getBookById(ctx.params.id);
+});
+
+BookRouter.post("/id/:id", AuthWall("modify_book"), async ctx =>
+{
+    const model = new Model.Book(ctx.body);
+    await Database.saveBook(model);
+    ctx.status = 200;
 });
 
 BookRouter.get("/author/:id", async ctx =>
@@ -52,7 +59,7 @@ BookRouter.get("/search/title/:query", async ctx =>
     ctx.response.body = await Database.searchBooksByTitle(ctx.params.query, limit);
 });
 
-BookRouter.get("/checked_out", AuthWall, async ctx =>
+BookRouter.get("/checked_out", AuthWall(), async ctx =>
 {
     ctx.response.body = await Database.getCheckedOut(ctx.state.user.id);
 });
