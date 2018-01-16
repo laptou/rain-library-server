@@ -11,7 +11,8 @@
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated"
-            }
+            },
+            "problemMatcher": []
         }
     ]
 }

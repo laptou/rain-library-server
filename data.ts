@@ -7,22 +7,24 @@ require("mongoose").Promise = Promise; // use require() to get rid of TS error
 
 const dev = process.env.NODE_ENV === "development";
 
-let conn = mongoose.connection;
+const conn = mongoose.connection;
 
-let dbLogger = new Logger(LogSource.Database);
+const logger = new Logger(LogSource.Database);
 
 conn.on("error", err =>
 {
-    dbLogger.error("Failed to connect to database.");
-    dbLogger.error(err);
+    logger.error("Failed to connect to database.");
+    logger.error(err);
+
+    if (dev) mongoose.connect("mongodb://localhost/library");
 });
 
 conn.on("open", () =>
 {
-    dbLogger.info("Successfully connected to database.");
+    logger.info("Successfully connected to database.");
 });
 
-let schema = {
+const schema = {
     Person: new mongoose.Schema(
         {
             username: String,
@@ -114,166 +116,166 @@ export interface Hold extends mongoose.Document
 
 export class Database
 {
-    static async getBookById (id: string, populate: boolean = true): Promise<Book>
+    static async getBookById(id: string, populate: boolean = true): Promise<Book>
     {
         let query = Model.Book.findById(id);
-    
+
         if (populate)
             query = query.populate("authors");
-        
+
         return await query.exec();
     }
-    
-    static async getBooksByAuthor (person: string | Person, populate = true, limit?: number)
+
+    static async getBooksByAuthor(person: string | Person, populate = true, limit?: number)
     {
         if (typeof person === "string")
         {
             let query = Model.Book.find({ authors: person });
-            
+
             if (limit)
                 query = query.limit(limit);
-            
+
             if (populate)
                 query = query.populate("authors");
-            
+
             return await query;
         }
         else
         {
             let query = Model.Book.find({ authors: person.id });
-            
+
             if (limit)
                 query = query.limit(limit);
-            
+
             if (populate)
                 query = query.populate("authors");
-            
+
             return await query;
         }
     }
-    
-    static async getBooksByIsbn (isbn: string, populate: boolean = true): Promise<Book[]>
+
+    static async getBooksByIsbn(isbn: string, populate: boolean = true): Promise<Book[]>
     {
         let query = Model.Book.find({ isbn });
-        
+
         if (populate)
             query = query.populate("authors");
-        
-        return <Book[]>await query.exec();
+
+        return await query.exec() as Book[];
     }
-    
-    static async getBooksByTitle (title: string, populate: boolean = true): Promise<Book[]>
+
+    static async getBooksByTitle(title: string, populate: boolean = true): Promise<Book[]>
     {
         let query = Model.Book.find({ name: title }).collation({ locale: "en", strength: 1 });
-        
+
         if (populate)
             query = query.populate("authors");
-    
+
         return await query.exec();
     }
-    
-    static async getCheckedOut (userId: string, bookId?: string): Promise<Checkout[]>
+
+    static async getCheckedOut(userId: string, bookId?: string): Promise<Checkout[]>
     {
         let query = Model.Checkout
-                         .find({
-                                   person: userId,
-                                   $or: [{ end: { $gte: new Date() } }, { end: null }]
-                               });
-    
+            .find({
+                person: userId,
+                $or: [{ end: { $gte: new Date() } }, { end: null }]
+            });
+
         if (bookId)
         {
             query = Model.Checkout
-                         .find({
-                                   person: userId,
-                                   book: bookId,
-                                   $or: [{ end: { $gte: new Date() } }, { end: null }]
-                               });
+                .find({
+                    person: userId,
+                    book: bookId,
+                    $or: [{ end: { $gte: new Date() } }, { end: null }]
+                });
         }
-    
+
         return await query.populate({
-                                        path: "book",
-                                        populate: { path: "authors" }
-                                    });
+            path: "book",
+            populate: { path: "authors" }
+        });
     }
-    
-    static async getPersonById (id: string): Promise<Person>
+
+    static async getPersonById(id: string): Promise<Person>
     {
-        let query = Model.Person.findById(id);
-        
+        const query = Model.Person.findById(id);
+
         return await query.exec();
     }
-    
-    static async getHoldsForBook (book: string | Book, populate = true): Promise<Hold[]>
+
+    static async getHoldsForBook(book: string | Book, populate = true): Promise<Hold[]>
     {
         let query = Model.Hold.find({ book: typeof book === "string" ? book : book.isbn });
-        
+
         if (populate)
             query = query.populate("person");
-        
+
         return await query.exec();
     }
-    
-    static async getHoldsForPerson (person: string | Person, populate = true): Promise<Hold[]>
+
+    static async getHoldsForPerson(person: string | Person, populate = true): Promise<Hold[]>
     {
         let query = Model.Hold.find({ person: typeof person === "string" ? person : person.id });
-        
+
         if (populate)
             query = query.populate("book");
-        
+
         return await query.exec();
     }
-    
-    static async getPersonByUsername (name: string): Promise<Person>
+
+    static async getPersonByUsername(name: string): Promise<Person>
     {
-        let query = Model.Person.findOne({ "username": name }, null,
-                                         { collation: { locale: "en", strength: 1 } });
-    
+        const query = Model.Person.findOne({ username: name }, null,
+            { collation: { locale: "en", strength: 1 } });
+
         return await query.exec();
     }
-    
-    static async saveBook (book: Book)
+
+    static async saveBook(book: Book)
     {
         await new Model.Book(book).save();
     }
-    
-    static async saveCheckout (checkout: Checkout)
+
+    static async saveCheckout(checkout: Checkout)
     {
         await new Model.Checkout(checkout).save();
     }
-    
-    static async saveHold (hold: Hold)
+
+    static async saveHold(hold: Hold)
     {
         await new Model.Hold(hold).save();
     }
-    
-    static async savePerson (person: Person)
+
+    static async savePerson(person: Person)
     {
         await new Model.Book(person).save();
     }
-    
-    static async searchBooks (search: string, populate: boolean = true, limit?: number): Promise<Book[]>
+
+    static async searchBooks(search: string, populate: boolean = true, limit?: number): Promise<Book[]>
     {
         let query = Model.Book.find({ $text: { $search: search } });
-    
+
         if (limit)
             query = query.limit(limit);
-        
+
         if (populate)
             query = query.populate("authors");
-    
+
         return await query.exec();
     }
-    
-    static async searchBooksByTitle (search: string, populate: boolean = true, limit?: number): Promise<Book[]>
+
+    static async searchBooksByTitle(search: string, populate: boolean = true, limit?: number): Promise<Book[]>
     {
         let query = Model.Book.find({ name: { $regex: `^${search}`, $options: "i" } });
-    
+
         if (limit)
             query = query.limit(limit);
-        
+
         if (populate)
             query = query.populate("authors");
-    
+
         return await query.exec();
     }
 }

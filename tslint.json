@@ -41,6 +41,7 @@
             true,
             "allow-empty-catch"
         ],
-        "interface-name": false
+        "interface-name": false,
+        "no-var-requires": false
     }
 }
