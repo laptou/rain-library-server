@@ -1,0 +1,46 @@
+{
+    "extends": "tslint:recommended",
+    "rules": {
+        "max-line-length": {
+            "options": [
+                120
+            ],
+            "severity": "warning"
+        },
+        "import-spacing": true,
+        "await-promise": true,
+        "deprecation": true,
+        "linebreak-style": false,
+        "arrow-parens": false,
+        "curly": false,
+        "one-line": false,
+        "trailing-comma": false,
+        "no-namespace": false,
+        "no-trailing-whitespace": {
+            "options": [
+                "ignore-blank-lines"
+            ],
+            "severity": "warn"
+        },
+        "member-access": [
+            true,
+            "no-public"
+        ],
+        "prefer-const": {
+            "severity": "warn"
+        },
+        "object-literal-sort-keys": {
+            "severity": "warn",
+            "options": [
+                "ignore-case",
+                "match-declaration-order"
+            ]
+        },
+        "one-variable-per-declaration": false,
+        "no-empty": [
+            true,
+            "allow-empty-catch"
+        ],
+        "interface-name": false
+    }
+}
