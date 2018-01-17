@@ -6,16 +6,18 @@ const util_1 = require("./util");
 mongoose.connect(config.db, { useMongoClient: true });
 require("mongoose").Promise = Promise; // use require() to get rid of TS error
 const dev = process.env.NODE_ENV === "development";
-let conn = mongoose.connection;
-let dbLogger = new util_1.Logger(util_1.LogSource.Database);
+const conn = mongoose.connection;
+const logger = new util_1.Logger(util_1.LogSource.Database);
 conn.on("error", err => {
-    dbLogger.error("Failed to connect to database.");
-    dbLogger.error(err);
+    logger.error("Failed to connect to database.");
+    logger.error(err);
+    if (dev)
+        mongoose.connect("mongodb://localhost/library");
 });
 conn.on("open", () => {
-    dbLogger.info("Successfully connected to database.");
+    logger.info("Successfully connected to database.");
 });
-let schema = {
+const schema = {
     Person: new mongoose.Schema({
         username: String,
         name: { first: String, last: String },
@@ -109,7 +111,7 @@ class Database {
         });
     }
     static async getPersonById(id) {
-        let query = exports.Model.Person.findById(id);
+        const query = exports.Model.Person.findById(id);
         return await query.exec();
     }
     static async getHoldsForBook(book, populate = true) {
@@ -125,7 +127,7 @@ class Database {
         return await query.exec();
     }
     static async getPersonByUsername(name) {
-        let query = exports.Model.Person.findOne({ "username": name }, null, { collation: { locale: "en", strength: 1 } });
+        const query = exports.Model.Person.findOne({ username: name }, null, { collation: { locale: "en", strength: 1 } });
         return await query.exec();
     }
     static async saveBook(book) {

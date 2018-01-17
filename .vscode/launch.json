@@ -7,10 +7,23 @@
         {
             "type": "node",
             "request": "launch",
+            "args": [
+                "staging"
+            ],
+            "name": "Publish",
+            "program": "${workspaceFolder}/publish.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Server",
             "sourceMaps": true,
             "program": "${workspaceFolder}/server.js",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "smartStep": true,
+            "skipFiles": [
+                "node_modules/"
+            ]
         }
     ]
 }

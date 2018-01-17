@@ -5,12 +5,12 @@ const KoaBodyParser = require("koa-bodyparser");
 const KoaJson = require("koa-json");
 const KoaPassport = require("koa-passport");
 const KoaRouter = require("koa-router");
-const KoaSend = require("koa-send");
+const KoaSendFile = require("koa-sendfile");
 const KoaSession = require("koa-session");
 const KoaStatic = require("koa-static");
-const KoaWebpack = require("koa-webpack");
 const Moment = require("moment");
 const path = require("path");
+const fs = require("fs");
 const api_1 = require("./api");
 const auth_1 = require("./auth");
 const util_1 = require("./util");
@@ -44,23 +44,30 @@ server.use(KoaJson());
 server.use(KoaSession({}, server));
 server.use(KoaPassport.initialize());
 server.use(KoaPassport.session());
-const config = require(`../rain-library-client/webpack.${dev ? "dev" : "prod"}`);
 router.use("/api", api_1.ApiRouter.routes());
 router.use("/auth", auth_1.AuthRouter.routes());
 server.use(async (ctx, next) => {
     logger.log(`${Moment().format("YYYY.MM.DD hh:mm:ssaZ")} - ${ctx.req.method} ${ctx.req.url}`);
     await next();
 });
+const config = require("../client/config");
+logger.log("Config: " + JSON.stringify(config));
 if (!apiOnly) {
+    logger.log("Not running in API Only mode.");
     if (!dev) {
-        router.use(async (ctx) => {
-            await KoaSend(ctx, path.join(config.output.path, "index.html"));
+        logger.log("Configuring catch-all router.");
+        router.get("*", async (ctx) => {
+            const target = path.join(config.output, ctx.path);
+            if (ctx.path && fs.existsSync(target) && fs.statSync(target).isFile())
+                await KoaSendFile(ctx, target);
+            else
+                await KoaSendFile(ctx, path.join(config.output, "index.html"));
         });
-        server.use(router.routes());
     }
     else {
+        const KoaWebpack = require("koa-webpack");
         const webpackLog = new util_1.Logger(util_1.LogSource.Webpack);
-        const compiler = require("webpack")(config);
+        const compiler = require("webpack")(require(`../client/webpack.${dev ? "dev" : "prod"}`));
         webpackLog.log("Loaded configuration.");
         const middleware = KoaWebpack({
             compiler,
@@ -82,17 +89,16 @@ if (!apiOnly) {
         });
         const mfs = middleware.dev.fileSystem;
         router.get("*", async (ctx) => {
-            let file = await new Promise(async (resolve, reject) => {
-                await mfs.readFile(path.join(config.output.path, "index.html"), "utf8", (err, result) => err ? reject(err) : resolve(result));
+            ctx.body = await new Promise(async (resolve, reject) => {
+                await mfs.readFile(path.join(config.output, "index.html"), "utf8", (err, result) => err ? reject(err) : resolve(result));
             });
-            ctx.body = file;
         });
         server.use(middleware);
-        server.use(router.routes());
-        webpackLog.info("Attached middleware.");
+        webpackLog.info("Attached webpack middleware.");
     }
 }
-server.use(KoaStatic(config.output.path));
+server.use(router.routes());
+server.use(KoaStatic(config.output));
 server.listen(process.env.PORT || 8000);
 logger.info("Server is up and running.");
 //# sourceMappingURL=server.js.map
