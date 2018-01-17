@@ -56,21 +56,21 @@ printjson(db.runCommand(
                         items: {
                             bsonType: "string",
                             enum: ["mystery",
-                                   "horror",
-                                   "egg",
-                                   "adventure",
-                                   "romance",
-                                   "young-adult",
-                                   "thriller",
-                                   "action",
-                                   "adult",
-                                   "child",
-                                   "erotica",
-                                   "test"],
+                                "horror",
+                                "egg",
+                                "history",
+                                "adventure",
+                                "romance",
+                                "young-adult",
+                                "thriller",
+                                "action",
+                                "adult",
+                                "child",
+                                "erotica",
+                                "test"],
                         },
                         uniqueItems: true,
                         minItems: 1
-
                     },
                     authors: { bsonType: "array", items: { bsonType: "objectId" }, uniqueItems: true, minItems: 1 },
                     edition: {
@@ -82,7 +82,15 @@ printjson(db.runCommand(
                         }
                     },
                     rating: { bsonType: "double" },
-                    ratingCount: { bsonType: "int" }
+                    ratingCount: { bsonType: "int" },
+                    location: { 
+                        bsonType: "object",
+                        properties: {
+                            site: { bsonType: "string" },
+                            section: { bsonType: "string" },
+                            shelf: { bsonType: "string" }
+                        }
+                    }
                 }
             }
         }
@@ -105,65 +113,85 @@ printjson(db.runCommand(
                             last: { bsonType: "string" }
                         }
                     },
-                    password: {
-                        bsonType: "string"
-                    },
+                    password: { bsonType: "string" },
                     permissions: {
                         bsonType: "array",
                         items: {
                             bsonType: "string",
                             enum: ["check_out",
-                                   "place_hold",
-                                   "modify_hold",
-                                   "modify_book",
-                                   "modify_fine",
-                                   "modify_person",
-                                   "admin",
-                                   "author",
-                                   "user",
-                                   "test"]
+                                "place_hold",
+                                "modify_hold",
+                                "modify_book",
+                                "modify_fine",
+                                "modify_person",
+                                "admin",
+                                "librarian",
+                                "author",
+                                "user",
+                                "test"]
                         },
                         uniqueItems: true
-                    }
+                    },
+                    bio: { bsonType: "string" },
+                    wiki: { bsonType: "string" }
                 }
             }
         }
     }));
 
 printjson(db.people.createIndex({ "username": 1 },
-                                {
-                                    unique: true,
-                                    partialFilterExpression: { username: { $exists: true } },
-                                    name: "Username",
-                                    collation: { locale: "en", strength: 1 }
-                                }));
-
+    {
+        unique: true,
+        partialFilterExpression: { username: { $exists: true } },
+        name: "Username",
+        collation: { locale: "en", strength: 1 }
+    }));
 printjson(db.people.createIndex({ "name.first": 1, "name.last": 1 },
-                                { name: "Full Name", collation: { locale: "en", strength: 1 } }));
+    { name: "Full Name", collation: { locale: "en", strength: 1 } }));
 
 printjson(db.books.createIndex({ "name": 1 }, { name: "Name (Collated)", collation: { locale: "en", strength: 1 } }));
 printjson(db.books.createIndex({ "name": "text" }, { name: "Name (FTS)" }));
 
 printjson(db.holds.createIndex({ "book": 1, "person": 1 }, { name: "Main" }));
+
 printjson(db.checkouts.createIndex({ "book": 1 }, { name: "Book" }));
 printjson(db.checkouts.createIndex({ "start": 1, "due": 1, "end": 1 }, { name: "Date" }));
 printjson(db.checkouts.createIndex({ "person": 1 }, { name: "Person" }));
 
 printjson(db.people.update({ _id: ObjectId("5a400a88da662e0ec88f88f3") },
-                           {
-                               name: { first: "Alexandre", last: "Dumas" },
-                               permissions: ["author"]
-                           },
-                           { upsert: true }));
+    {
+        name: { first: "Alexandre", last: "Dumas" },
+        permissions: ["author"]
+    },
+    { upsert: true }));
 
 printjson(db.books.update({ "_id": ObjectId("5a400cf0da662e0ec88f88f4") },
-                          {
-                              name: "The Count of Monte Cristo",
-                              editions: [{ "publisher": "Heehee Publishing", "version": NumberInt(3) }],
-                              authors: [ObjectId("5a400a88da662e0ec88f88f3")],
-                              genre: ["mystery", "egg"],
-                              year: NumberInt(1845),
-                              isbn: "9780553213508"
-                          },
-                          { upsert: true }));
+    {
+        name: "The Count of Monte Cristo",
+        editions: [{ "publisher": "Heehee Publishing", "version": NumberInt(3) }],
+        authors: [ObjectId("5a400a88da662e0ec88f88f3")],
+        genre: ["mystery", "egg"],
+        year: NumberInt(1845),
+        isbn: "9780553213508"
+    },
+    { upsert: true }));
+
+
+printjson(db.checkouts.update({ "_id": ObjectId("5a5d01168a45aa1d1688609c") },
+    {
+        "start": ISODate("2018-01-11T00:00:00Z"),
+        "penalty_factor": 4,
+        "due": ISODate("2018-02-11T22:05:00Z"),
+        "book": ObjectId("5a400cf0da662e0ec88f88f4"),
+        "person": ObjectId("5a598571f206d2259c0edb7a")
+    }, { upsert: true }));
+
+printjson(db.holds.update({ "_id": ObjectId("5a5d01168a45ba1d1688609c") },
+    {
+        "date": ISODate("2018-01-11T00:00:00Z"),
+        "completed": false,
+        "isbn": "9780553213508",
+        "person": ObjectId("5a598571f206d2259c0edb7a")
+    }, { upsert: true }));
+
 print("done");
