@@ -125,7 +125,6 @@ printjson(db.runCommand(
                                 "modify_fine",
                                 "modify_person",
                                 "admin",
-                                "librarian",
                                 "author",
                                 "user",
                                 "test"]
@@ -133,7 +132,7 @@ printjson(db.runCommand(
                         uniqueItems: true
                     },
                     bio: { bsonType: "string" },
-                    wiki: { bsonType: "string" }
+                    wiki: { bsonType: "string", pattern: "^(https?:\/\/)?([A-Za-z]{2}|simple).wikipedia.org\/wiki\/[^#<>{}\[\]\|]+$" }
                 }
             }
         }

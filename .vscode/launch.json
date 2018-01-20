@@ -7,15 +7,6 @@
         {
             "type": "node",
             "request": "launch",
-            "args": [
-                "staging"
-            ],
-            "name": "Publish",
-            "program": "${workspaceFolder}/publish.js"
-        },
-        {
-            "type": "node",
-            "request": "launch",
             "name": "Server",
             "sourceMaps": true,
             "program": "${workspaceFolder}/server.js",
