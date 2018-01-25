@@ -27,10 +27,11 @@ process.on("uncaughtException", (err) =>
     process.exit(1);
 });
 
-const dev = process.env.NODE_ENV === "development";
-const apiOnly = 2 in process.argv && process.argv[2] === "-api-only";
+const dev = process.env.NODE_ENV === "development" && process.argv.indexOf("-production") === -1;
+const apiOnly = process.argv.indexOf("-api-only") !== -1;
 
 if (apiOnly) logger.info("Running in API Only mode.");
+if (dev) logger.info("Running in development mode.");
 
 const server = new Koa();
 const router = new KoaRouter();
@@ -91,7 +92,6 @@ if (!apiOnly)
             else
                 await KoaSendFile(ctx, path.join(config.output, "index.html"));
         });
-
     }
     else
     {

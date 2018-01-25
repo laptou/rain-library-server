@@ -28,7 +28,8 @@ const schema = {
         name: String,
         editions: [{ version: Number, publisher: String }],
         authors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Person" }],
-        genre: [{ type: String }]
+        genre: [{ type: String }],
+        isbn: String
     }),
     Checkout: new mongoose.Schema({
         start: Date,
@@ -40,7 +41,7 @@ const schema = {
     Hold: new mongoose.Schema({
         date: Date,
         completed: Boolean,
-        isbn: { type: String },
+        isbn: String,
         person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
     })
 };
@@ -99,7 +100,7 @@ class Database {
         });
         if (bookId) {
             query = exports.Model.Checkout
-                .find({
+                .findOne({
                 person: userId,
                 book: bookId,
                 $or: [{ end: { $gte: new Date() } }, { end: null }]

@@ -13,6 +13,21 @@ exports.BookRouter.get("/isbn/:isbn", async (ctx) => {
 exports.BookRouter.get("/id/:id", async (ctx) => {
     ctx.response.body = await data_1.Database.getBookById(ctx.params.id);
 });
+exports.BookRouter.get("/status/:id", async (ctx) => {
+    const checkout = await data_1.Database.getCheckedOut(ctx.state.user.id, ctx.params.id);
+    if (checkout) {
+        ctx.response.body = { status: "checked_out", checkout };
+        return;
+    }
+    const book = await data_1.Database.getBookById(ctx.params.id);
+    let holds = await data_1.Database.getHoldsForPerson(ctx.state.user.id);
+    holds = holds.filter(h => h.isbn === book.isbn && !h.completed);
+    if (holds.length > 0) {
+        ctx.response.body = { status: "on_hold", hold: holds[0] };
+        return;
+    }
+    ctx.response.body = { status: "none" };
+});
 exports.BookRouter.post("/id/:id", auth_1.AuthWall("modify_book"), async (ctx) => {
     const model = new data_1.Model.Book(ctx.body);
     await data_1.Database.saveBook(model);
@@ -27,7 +42,7 @@ exports.BookRouter.get("/title/:name", async (ctx) => {
 exports.BookRouter.get("/search/:query", async (ctx) => {
     let limit = null;
     if (ctx.query.limit)
-        limit = parseInt(ctx.query.limit);
+        limit = parseInt(ctx.query.limit, 10);
     let books = linq_1.Linq.array([...await data_1.Database.searchBooksByTitle(ctx.params.query, true, limit),
         ...await data_1.Database.searchBooks(ctx.params.query, true, limit)])
         .distinct(book => book.id);
@@ -38,13 +53,10 @@ exports.BookRouter.get("/search/:query", async (ctx) => {
 exports.BookRouter.get("/search/title/:query", async (ctx) => {
     let limit = null;
     if (ctx.query.limit)
-        limit = parseInt(limit);
+        limit = parseInt(limit, 10);
     ctx.response.body = await data_1.Database.searchBooksByTitle(ctx.params.query, limit);
 });
 exports.BookRouter.get("/checked_out", auth_1.AuthWall(), async (ctx) => {
     ctx.response.body = await data_1.Database.getCheckedOut(ctx.state.user.id);
-});
-exports.BookRouter.get("/checked_out/:id", auth_1.AuthWall(), async (ctx) => {
-    ctx.response.body = (await data_1.Database.getCheckedOut(ctx.state.user.id, ctx.params.id)).length > 0;
 });
 //# sourceMappingURL=book.js.map

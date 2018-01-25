@@ -37,7 +37,8 @@ const schema = {
             name: String,
             editions: [{ version: Number, publisher: String }],
             authors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Person" }],
-            genre: [{ type: String }]
+            genre: [{ type: String }],
+            isbn: String
         }),
     Checkout: new mongoose.Schema(
         {
@@ -51,7 +52,7 @@ const schema = {
         {
             date: Date,
             completed: Boolean,
-            isbn: { type: String },
+            isbn: String,
             person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
         })
 };
@@ -174,9 +175,11 @@ export class Database
         return await query.exec();
     }
 
-    static async getCheckedOut(userId: string, bookId?: string): Promise<Checkout[]>
+    static async getCheckedOut(userId: string, bookId: string): Promise<Checkout>;
+    static async getCheckedOut(userId: string): Promise<Checkout[]>;
+    static async getCheckedOut(userId: string, bookId?: string): Promise<Checkout[] | Checkout>
     {
-        let query = Model.Checkout
+        let query: mongoose.DocumentQuery<Checkout[] | Checkout, Checkout> = Model.Checkout
             .find({
                 person: userId,
                 $or: [{ end: { $gte: new Date() } }, { end: null }]
@@ -185,7 +188,7 @@ export class Database
         if (bookId)
         {
             query = Model.Checkout
-                .find({
+                .findOne({
                     person: userId,
                     book: bookId,
                     $or: [{ end: { $gte: new Date() } }, { end: null }]

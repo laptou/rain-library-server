@@ -17,6 +17,30 @@ BookRouter.get("/id/:id", async ctx =>
     ctx.response.body = await Database.getBookById(ctx.params.id);
 });
 
+BookRouter.get("/status/:id", async ctx =>
+{
+    const checkout = await Database.getCheckedOut(ctx.state.user.id, ctx.params.id);
+
+    if (checkout)
+    {
+        ctx.response.body = { status: "checked_out", checkout };
+        return;
+    }
+
+    const book = await Database.getBookById(ctx.params.id);
+
+    let holds = await Database.getHoldsForPerson(ctx.state.user.id);
+    holds = holds.filter(h => h.isbn === book.isbn && !h.completed);
+
+    if (holds.length > 0)
+    {
+        ctx.response.body = { status: "on_hold", hold: holds[0] };
+        return;
+    }
+
+    ctx.response.body = { status: "none" };
+});
+
 BookRouter.post("/id/:id", AuthWall("modify_book"), async ctx =>
 {
     const model = new Model.Book(ctx.body);
@@ -38,7 +62,7 @@ BookRouter.get("/search/:query", async ctx =>
 {
     let limit = null;
     
-    if (ctx.query.limit) limit = parseInt(ctx.query.limit);
+    if (ctx.query.limit) limit = parseInt(ctx.query.limit, 10);
     
     let books =
         Linq.array<Book>([...await Database.searchBooksByTitle(ctx.params.query, true, limit),
@@ -54,7 +78,7 @@ BookRouter.get("/search/:query", async ctx =>
 BookRouter.get("/search/title/:query", async ctx =>
 {
     let limit = null;
-    if (ctx.query.limit) limit = parseInt(limit);
+    if (ctx.query.limit) limit = parseInt(limit, 10);
     
     ctx.response.body = await Database.searchBooksByTitle(ctx.params.query, limit);
 });
@@ -62,9 +86,4 @@ BookRouter.get("/search/title/:query", async ctx =>
 BookRouter.get("/checked_out", AuthWall(), async ctx =>
 {
     ctx.response.body = await Database.getCheckedOut(ctx.state.user.id);
-});
-
-BookRouter.get("/checked_out/:id", AuthWall(), async ctx =>
-{
-    ctx.response.body = (await Database.getCheckedOut(ctx.state.user.id, ctx.params.id)).length > 0;
 });

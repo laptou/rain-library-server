@@ -22,10 +22,12 @@ process.on("uncaughtException", (err) => {
     // close the database connection etc.
     process.exit(1);
 });
-const dev = process.env.NODE_ENV === "development";
-const apiOnly = 2 in process.argv && process.argv[2] === "-api-only";
+const dev = process.env.NODE_ENV === "development" && process.argv.indexOf("-production") === -1;
+const apiOnly = process.argv.indexOf("-api-only") !== -1;
 if (apiOnly)
     logger.info("Running in API Only mode.");
+if (dev)
+    logger.info("Running in development mode.");
 const server = new Koa();
 const router = new KoaRouter();
 server.keys = ["<\xd2Oa\x9f\xfa\xe2\xc6\xdad \xcf\x18=\xf5h.\xff\xb2\xd3\x02M.vI\x9eN\xe7'\xa6\xc8I\xd62J\xbe"];
