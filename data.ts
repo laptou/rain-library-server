@@ -43,7 +43,7 @@ const schema = {
     Checkout: new mongoose.Schema(
         {
             start: Date,
-            end: Date,
+            due: Date,
             penalty_factor: Number,
             book: { type: mongoose.Schema.Types.ObjectId, ref: "Book" },
             person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
@@ -101,7 +101,7 @@ export declare interface Book extends mongoose.Document
 export interface Checkout extends mongoose.Document
 {
     start: Date;
-    end: Date | null;
+    due: Date | null;
     penalty_factor: number;
     book: string | Book;
     person: string | Person;
@@ -204,6 +204,16 @@ export class Database
     static async getPersonById(id: string): Promise<Person>
     {
         const query = Model.Person.findById(id);
+
+        return await query.exec();
+    }
+
+    static async getHoldById(id: string, populate = true): Promise<Hold>
+    {
+        let query = Model.Hold.findById(id);
+
+        if (populate)
+            query = query.populate("person");
 
         return await query.exec();
     }

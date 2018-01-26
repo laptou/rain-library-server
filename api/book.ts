@@ -4,6 +4,15 @@ import { Book, Database, Model } from "../data";
 import { Logger, LogSource } from "../util";
 import { Linq } from "../util/linq";
 
+enum BookStatus
+{
+    None = "none",
+    OnHold = "on_hold",
+    CheckedOut = "checked_out",
+    Overdue = "overdue",
+    Unavailable = "unavailable"
+}
+
 const logger = new Logger(LogSource.Api);
 export let BookRouter = new Router();
 
@@ -23,7 +32,10 @@ BookRouter.get("/status/:id", async ctx =>
 
     if (checkout)
     {
-        ctx.response.body = { status: "checked_out", checkout };
+        if (checkout.due < new Date())
+            ctx.response.body = { status: BookStatus.Overdue, checkout };
+        else
+            ctx.response.body = { status: BookStatus.CheckedOut, checkout };
         return;
     }
 
@@ -34,11 +46,11 @@ BookRouter.get("/status/:id", async ctx =>
 
     if (holds.length > 0)
     {
-        ctx.response.body = { status: "on_hold", hold: holds[0] };
+        ctx.response.body = { status: BookStatus.OnHold, hold: holds[0] };
         return;
     }
 
-    ctx.response.body = { status: "none" };
+    ctx.response.body = { status: BookStatus.None };
 });
 
 BookRouter.post("/id/:id", AuthWall("modify_book"), async ctx =>
@@ -61,17 +73,17 @@ BookRouter.get("/title/:name", async ctx =>
 BookRouter.get("/search/:query", async ctx =>
 {
     let limit = null;
-    
+
     if (ctx.query.limit) limit = parseInt(ctx.query.limit, 10);
-    
+
     let books =
         Linq.array<Book>([...await Database.searchBooksByTitle(ctx.params.query, true, limit),
-                          ...await Database.searchBooks(ctx.params.query, true, limit)])
+        ...await Database.searchBooks(ctx.params.query, true, limit)])
             .distinct(book => book.id);
-    
+
     if (limit)
         books = books.slice(0, limit);
-    
+
     ctx.response.body = books.toArray();
 });
 
@@ -79,7 +91,7 @@ BookRouter.get("/search/title/:query", async ctx =>
 {
     let limit = null;
     if (ctx.query.limit) limit = parseInt(limit, 10);
-    
+
     ctx.response.body = await Database.searchBooksByTitle(ctx.params.query, limit);
 });
 

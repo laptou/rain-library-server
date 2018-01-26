@@ -33,7 +33,7 @@ const schema = {
     }),
     Checkout: new mongoose.Schema({
         start: Date,
-        end: Date,
+        due: Date,
         penalty_factor: Number,
         book: { type: mongoose.Schema.Types.ObjectId, ref: "Book" },
         person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
@@ -113,6 +113,12 @@ class Database {
     }
     static async getPersonById(id) {
         const query = exports.Model.Person.findById(id);
+        return await query.exec();
+    }
+    static async getHoldById(id, populate = true) {
+        let query = exports.Model.Hold.findById(id);
+        if (populate)
+            query = query.populate("person");
         return await query.exec();
     }
     static async getHoldsForBook(book, populate = true) {

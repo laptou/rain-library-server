@@ -83,7 +83,7 @@ printjson(db.runCommand(
                     },
                     rating: { bsonType: "double" },
                     ratingCount: { bsonType: "int" },
-                    location: { 
+                    location: {
                         bsonType: "object",
                         properties: {
                             site: { bsonType: "string" },
@@ -161,6 +161,15 @@ printjson(db.people.update({ _id: ObjectId("5a400a88da662e0ec88f88f3") },
     {
         name: { first: "Alexandre", last: "Dumas" },
         permissions: ["author"]
+    },
+    { upsert: true }));
+
+printjson(db.people.update({ _id: ObjectId("5a5624d00408d33ed0c28ce4") },
+    {
+        "password": "$2a$12$pRcEPIMwrwj9D81xSvU.vO98GLOy607GIFdmJvaeXAO03OviEkRcu",
+        "username": "rEeraa",
+        "permissions": ["user", "place_hold"],
+        "name": { "first": "ree", "last": "raa" }
     },
     { upsert: true }));
 
