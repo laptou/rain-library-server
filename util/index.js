@@ -106,8 +106,10 @@ class Async {
 }
 exports.Async = Async;
 function acceptsJson(ctx) {
-    let types = ctx.headers["accept"].split(",").map(t => t.trim());
-    return types.indexOf("application/json") !== -1;
+    return ctx.headers["accept"]
+        .split(",")
+        .map(t => t.trim())
+        .indexOf("application/json") !== -1;
 }
 exports.acceptsJson = acceptsJson;
 //# sourceMappingURL=index.js.map

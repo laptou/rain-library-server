@@ -22,7 +22,7 @@ exports.BookRouter.get("/id/:id", async (ctx) => {
     ctx.response.body = await data_1.Database.getBookById(ctx.params.id);
 });
 exports.BookRouter.get("/status/:id", async (ctx) => {
-    const checkout = await data_1.Database.getCheckedOut(ctx.state.user.id, ctx.params.id);
+    const checkout = await data_1.Database.getCheckoutsForUser(ctx.state.user.id, ctx.params.id);
     if (checkout) {
         if (checkout.due < new Date())
             ctx.response.body = { status: BookStatus.Overdue, checkout };
@@ -68,6 +68,6 @@ exports.BookRouter.get("/search/title/:query", async (ctx) => {
     ctx.response.body = await data_1.Database.searchBooksByTitle(ctx.params.query, limit);
 });
 exports.BookRouter.get("/checked_out", auth_1.AuthWall(), async (ctx) => {
-    ctx.response.body = await data_1.Database.getCheckedOut(ctx.state.user.id);
+    ctx.response.body = await data_1.Database.getCheckoutsForUser(ctx.state.user.id);
 });
 //# sourceMappingURL=book.js.map

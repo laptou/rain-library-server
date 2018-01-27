@@ -7,6 +7,21 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Server (API Only)",
+            "sourceMaps": true,
+            "program": "${workspaceFolder}/server.js",
+            "console": "integratedTerminal",
+            "smartStep": true,
+            "skipFiles": [
+                "node_modules/"
+            ],
+            "args": [
+                "-api-only"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Server",
             "sourceMaps": true,
             "program": "${workspaceFolder}/server.js",

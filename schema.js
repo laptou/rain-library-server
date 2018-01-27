@@ -27,11 +27,12 @@ printjson(db.runCommand(
         "validator": {
             "$jsonSchema": {
                 bsonType: "object",
-                required: ["start", "penalty_factor", "book", "person", "due"],
+                required: ["start", "penalty_factor", "book", "person", "due", "completed"],
                 properties: {
                     start: { bsonType: "date" },
                     due: { bsonType: "date" },
                     end: { bsonType: "date" },
+                    completed: { bsonType: "bool" },
                     penalty_factor: { bsonType: "double" },
                     book: { bsonType: "objectId" },
                     person: { bsonType: "objectId" }
@@ -189,6 +190,7 @@ printjson(db.checkouts.update({ "_id": ObjectId("5a5d01168a45aa1d1688609c") },
     {
         "start": ISODate("2018-01-11T00:00:00Z"),
         "penalty_factor": 4,
+        completed: false,
         "due": ISODate("2018-02-11T22:05:00Z"),
         "book": ObjectId("5a400cf0da662e0ec88f88f4"),
         "person": ObjectId("5a598571f206d2259c0edb7a")

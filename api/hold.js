@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Rx = require("rxjs/Rx");
 const Router = require("koa-router");
 const auth_1 = require("../auth");
 const data_1 = require("../data");
@@ -14,23 +15,55 @@ exports.HoldRouter.post("/me", auth_1.AuthWall("place_hold"), async (ctx) => {
         completed: false
     }));
 });
+const getHolds = (getter) => {
+    return async (ctx) => {
+        ctx.body = await Rx.Observable
+            .from(await getter(ctx))
+            .flatMap(async (h) => {
+            const checkouts = await data_1.Database.getCheckoutsForIsbn(h.isbn);
+            const copies = await data_1.Database.getBooksByIsbn(h.isbn, false);
+            let ready = copies.length > checkouts.length;
+            if (ready) {
+                const holds = await data_1.Database.getPendingHoldsForBook(h.isbn, false);
+                ready = holds[0].id === h.id;
+            }
+            return Object.assign(h.toJSON(), { ready });
+        })
+            .toArray()
+            .toPromise();
+    };
+};
+exports.HoldRouter.get("/me", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getHoldsForPerson(ctx.state.user)));
+exports.HoldRouter.get("/me/pending", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getPendingHoldsForPerson(ctx.state.user)));
 exports.HoldRouter.get("/:id", auth_1.AuthWall("place_hold"), async (ctx) => {
     const hold = await data_1.Database.getHoldById(ctx.params.id);
+    const holder = hold.person;
     const user = ctx.state.user;
-    if (user.permissions.indexOf("modify_hold") !== -1 ||
-        hold.person.id === user.id) {
-        ctx.body = hold;
+    if (user.permissions.indexOf("modify_hold") === -1 &&
+        holder.id !== user.id) {
+        ctx.status = 401;
         return;
     }
+    ctx.body = hold;
 });
 exports.HoldRouter.post("/:id", auth_1.AuthWall("modify_hold"), async (ctx) => {
     const hold = await data_1.Database.getHoldById(ctx.params.id);
-    const user = ctx.state.user;
-    if (user.permissions.indexOf("modify_hold") !== -1 ||
-        hold.person.id === user.id) {
-        ctx.body = hold;
+    // make sure the user didn't submit any properties that should
+    // be resistant to change
+    for (const key in ctx.body) {
+        // right now, completed is the only property
+        // that can be changed after the hold is created
+        if (["completed"].indexOf(key) === -1) {
+            ctx.status = 400;
+            return;
+        }
+    }
+    if ("completed" in ctx.body && typeof ctx.body.completed !== "boolean") {
+        ctx.status = 400;
         return;
     }
+    Object.assign(hold, ctx.body);
+    await hold.save();
 });
 exports.HoldRouter.get("/book/:isbn", auth_1.AuthWall("modify_hold"), async (ctx) => {
     ctx.body = await data_1.Database.getHoldsForBook(ctx.params.isbn);
@@ -38,10 +71,6 @@ exports.HoldRouter.get("/book/:isbn", auth_1.AuthWall("modify_hold"), async (ctx
 exports.HoldRouter.get("/book/:isbn/count", auth_1.AuthWall("place_hold"), async (ctx) => {
     ctx.body = (await data_1.Database.getHoldsForBook(ctx.params.isbn)).length;
 });
-exports.HoldRouter.get("/person/:id", auth_1.AuthWall("modify_hold"), async (ctx) => {
-    ctx.body = await data_1.Database.getHoldsForPerson(ctx.params.id);
-});
-exports.HoldRouter.get("/me", auth_1.AuthWall("place_hold"), async (ctx) => {
-    ctx.body = await data_1.Database.getHoldsForPerson(ctx.state.user);
-});
+exports.HoldRouter.get("/person/:id", auth_1.AuthWall("modify_hold"), getHolds(ctx => data_1.Database.getHoldsForPerson(ctx.params.id)));
+exports.HoldRouter.get("/person/:id/pending", auth_1.AuthWall("modify_hold"), getHolds(ctx => data_1.Database.getPendingHoldsForPerson(ctx.params.id)));
 //# sourceMappingURL=hold.js.map

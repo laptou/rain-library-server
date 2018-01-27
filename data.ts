@@ -44,6 +44,7 @@ const schema = {
         {
             start: Date,
             due: Date,
+            completed: Boolean,
             penalty_factor: Number,
             book: { type: mongoose.Schema.Types.ObjectId, ref: "Book" },
             person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
@@ -57,10 +58,13 @@ const schema = {
         })
 };
 
-schema.Person.set("toJSON", { virtuals: true });
-schema.Book.set("toJSON", { virtuals: true });
-schema.Checkout.set("toJSON", { virtuals: true });
-schema.Hold.set("toJSON", { virtuals: true });
+schema.Person.set("toJSON", {
+    transform: (doc: Person, ret: Person, options: any) =>
+    {
+        delete ret.password;
+        delete ret.__v;
+    }
+});
 
 export let Model = {
     Person: mongoose.model<Person>("Person", schema.Person),
@@ -102,6 +106,7 @@ export interface Checkout extends mongoose.Document
 {
     start: Date;
     due: Date | null;
+    completed: boolean;
     penalty_factor: number;
     book: string | Book;
     person: string | Person;
@@ -175,9 +180,9 @@ export class Database
         return await query.exec();
     }
 
-    static async getCheckedOut(userId: string, bookId: string): Promise<Checkout>;
-    static async getCheckedOut(userId: string): Promise<Checkout[]>;
-    static async getCheckedOut(userId: string, bookId?: string): Promise<Checkout[] | Checkout>
+    static async getCheckoutsForUser(userId: string, bookId: string): Promise<Checkout>;
+    static async getCheckoutsForUser(userId: string): Promise<Checkout[]>;
+    static async getCheckoutsForUser(userId: string, bookId?: string): Promise<Checkout[] | Checkout>
     {
         let query: mongoose.DocumentQuery<Checkout[] | Checkout, Checkout> = Model.Checkout
             .find({
@@ -201,6 +206,12 @@ export class Database
         });
     }
 
+    static async getCheckoutsForIsbn(isbn: string): Promise<Checkout[]>
+    {
+        const bookIds = await Model.Book.find({ isbn }).select("_id");
+        return await Model.Checkout.find({ completed: false, book: { $in: bookIds } });
+    }
+
     static async getPersonById(id: string): Promise<Person>
     {
         const query = Model.Person.findById(id);
@@ -220,7 +231,21 @@ export class Database
 
     static async getHoldsForBook(book: string | Book, populate = true): Promise<Hold[]>
     {
-        let query = Model.Hold.find({ book: typeof book === "string" ? book : book.isbn });
+        let query = Model.Hold
+            .find({ isbn: typeof book === "string" ? book : book.isbn })
+            .sort({ date: 1 });
+
+        if (populate)
+            query = query.populate("person");
+
+        return await query.exec();
+    }
+
+    static async getPendingHoldsForBook(book: string | Book, populate = true): Promise<Hold[]>
+    {
+        let query = Model.Hold
+            .find({ isbn: typeof book === "string" ? book : book.isbn, completed: false })
+            .sort({ date: 1 });
 
         if (populate)
             query = query.populate("person");
@@ -233,7 +258,17 @@ export class Database
         let query = Model.Hold.find({ person: typeof person === "string" ? person : person.id });
 
         if (populate)
-            query = query.populate("book");
+            query = query.populate("person");
+
+        return await query.exec();
+    }
+
+    static async getPendingHoldsForPerson(person: string | Person, populate = true): Promise<Hold[]>
+    {
+        let query = Model.Hold.find({ person: typeof person === "string" ? person : person.id, completed: false });
+
+        if (populate)
+            query = query.populate("person");
 
         return await query.exec();
     }
