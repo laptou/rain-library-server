@@ -1,4 +1,5 @@
 import * as Router from "koa-router";
+import * as Rx from "rxjs";
 import { AuthWall } from "../auth";
 import { Book, Database, Model } from "../data";
 import { Logger, LogSource } from "../util";
@@ -77,12 +78,13 @@ BookRouter.get("/search/:query", async ctx =>
     if (ctx.query.limit) limit = parseInt(ctx.query.limit, 10);
 
     let books =
-        Linq.array<Book>([...await Database.searchBooksByTitle(ctx.params.query, true, limit),
-        ...await Database.searchBooks(ctx.params.query, true, limit)])
+        Rx.Observable.from([
+            ...await Database.searchBooksByTitle(ctx.params.query, true, limit),
+            ...await Database.searchBooks(ctx.params.query, true, limit)])
             .distinct(book => book.id);
 
     if (limit)
-        books = books.slice(0, limit);
+        books = books.take(limit);
 
     ctx.response.body = books.toArray();
 });

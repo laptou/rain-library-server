@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Router = require("koa-router");
+const Rx = require("rxjs");
 const auth_1 = require("../auth");
 const data_1 = require("../data");
 const util_1 = require("../util");
-const linq_1 = require("../util/linq");
 var BookStatus;
 (function (BookStatus) {
     BookStatus["None"] = "none";
@@ -54,11 +54,13 @@ exports.BookRouter.get("/search/:query", async (ctx) => {
     let limit = null;
     if (ctx.query.limit)
         limit = parseInt(ctx.query.limit, 10);
-    let books = linq_1.Linq.array([...await data_1.Database.searchBooksByTitle(ctx.params.query, true, limit),
-        ...await data_1.Database.searchBooks(ctx.params.query, true, limit)])
+    let books = Rx.Observable.from([
+        ...await data_1.Database.searchBooksByTitle(ctx.params.query, true, limit),
+        ...await data_1.Database.searchBooks(ctx.params.query, true, limit)
+    ])
         .distinct(book => book.id);
     if (limit)
-        books = books.slice(0, limit);
+        books = books.take(limit);
     ctx.response.body = books.toArray();
 });
 exports.BookRouter.get("/search/title/:query", async (ctx) => {
