@@ -11,9 +11,10 @@ exports.HoldRouter.post("/me", auth_1.AuthWall("place_hold"), async (ctx) => {
     await data_1.Database.saveHold(new data_1.Model.Hold({
         date: new Date(),
         person: ctx.state.user.id,
-        isbn: ctx.body.isbn,
+        isbn: ctx.request.body.isbn,
         completed: false
     }));
+    ctx.status = 200;
 });
 const getHolds = (getter) => {
     return async (ctx) => {
@@ -27,14 +28,17 @@ const getHolds = (getter) => {
                 const holds = await data_1.Database.getPendingHoldsForBook(h.isbn, false);
                 ready = holds[0].id === h.id;
             }
-            return Object.assign(h.toJSON(), { ready });
+            // if we make two calls instead of just using the first one
+            // then we can use population for just one of the books
+            const copy = await data_1.Database.getBookById(copies[0]._id);
+            return Object.assign(h.toJSON(), { ready, book: copy });
         })
             .toArray()
             .toPromise();
     };
 };
-exports.HoldRouter.get("/me", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getHoldsForPerson(ctx.state.user)));
-exports.HoldRouter.get("/me/pending", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getPendingHoldsForPerson(ctx.state.user)));
+exports.HoldRouter.get("/me", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getHoldsForPerson(ctx.state.user, false)));
+exports.HoldRouter.get("/me/pending", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getPendingHoldsForPerson(ctx.state.user, false)));
 exports.HoldRouter.get("/:id", auth_1.AuthWall("place_hold"), async (ctx) => {
     const hold = await data_1.Database.getHoldById(ctx.params.id);
     const holder = hold.person;
@@ -45,6 +49,17 @@ exports.HoldRouter.get("/:id", auth_1.AuthWall("place_hold"), async (ctx) => {
         return;
     }
     ctx.body = hold;
+});
+exports.HoldRouter.delete("/:id", auth_1.AuthWall("place_hold"), async (ctx) => {
+    const hold = await data_1.Database.getHoldById(ctx.params.id);
+    const holder = hold.person;
+    const user = ctx.state.user;
+    if (user.permissions.indexOf("modify_hold") === -1 &&
+        holder.id !== user.id) {
+        ctx.status = 401;
+        return;
+    }
+    await hold.remove();
 });
 exports.HoldRouter.post("/:id", auth_1.AuthWall("modify_hold"), async (ctx) => {
     const hold = await data_1.Database.getHoldById(ctx.params.id);
