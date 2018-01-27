@@ -28,7 +28,7 @@ BookRouter.get("/id/:id", async ctx =>
 
 BookRouter.get("/status/:id", async ctx =>
 {
-    const checkout = await Database.getCheckoutsForUser(ctx.state.user.id, ctx.params.id);
+    const checkout = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.id);
 
     if (checkout)
     {
@@ -97,5 +97,5 @@ BookRouter.get("/search/title/:query", async ctx =>
 
 BookRouter.get("/checked_out", AuthWall(), async ctx =>
 {
-    ctx.response.body = await Database.getCheckoutsForUser(ctx.state.user.id);
+    ctx.response.body = await Database.getCurrentCheckoutsForUser(ctx.state.user.id);
 });

@@ -180,14 +180,14 @@ export class Database
         return await query.exec();
     }
 
-    static async getCheckoutsForUser(userId: string, bookId: string): Promise<Checkout>;
-    static async getCheckoutsForUser(userId: string): Promise<Checkout[]>;
-    static async getCheckoutsForUser(userId: string, bookId?: string): Promise<Checkout[] | Checkout>
+    static async getCurrentCheckoutsForUser(userId: string, bookId: string): Promise<Checkout>;
+    static async getCurrentCheckoutsForUser(userId: string): Promise<Checkout[]>;
+    static async getCurrentCheckoutsForUser(userId: string, bookId?: string): Promise<Checkout[] | Checkout>
     {
         let query: mongoose.DocumentQuery<Checkout[] | Checkout, Checkout> = Model.Checkout
             .find({
                 person: userId,
-                $or: [{ end: { $gte: new Date() } }, { end: null }]
+                completed: false
             });
 
         if (bookId)
@@ -196,7 +196,7 @@ export class Database
                 .findOne({
                     person: userId,
                     book: bookId,
-                    $or: [{ end: { $gte: new Date() } }, { end: null }]
+                    completed: false
                 });
         }
 

@@ -95,18 +95,18 @@ class Database {
             query = query.populate("authors");
         return await query.exec();
     }
-    static async getCheckoutsForUser(userId, bookId) {
+    static async getCurrentCheckoutsForUser(userId, bookId) {
         let query = exports.Model.Checkout
             .find({
             person: userId,
-            $or: [{ end: { $gte: new Date() } }, { end: null }]
+            completed: false
         });
         if (bookId) {
             query = exports.Model.Checkout
                 .findOne({
                 person: userId,
                 book: bookId,
-                $or: [{ end: { $gte: new Date() } }, { end: null }]
+                completed: false
             });
         }
         return await query.populate({
