@@ -70,7 +70,18 @@ exports.HoldRouter.get("/:id", auth_1.AuthWall("place_hold"), async (ctx) => {
         ctx.status = 404;
     }
 });
-exports.HoldRouter.delete("/:id", auth_1.AuthWall("place_hold"), async (ctx) => {
+exports.HoldRouter.delete("/me/:isbn", auth_1.AuthWall("place_hold"), async (ctx) => {
+    const hold = (await data_1.Database.getPendingHoldsForPerson(ctx.state.user.id))
+        .filter(h => h.isbn === ctx.params.isbn);
+    if (hold[0]) {
+        await hold[0].remove();
+        ctx.status = 200;
+    }
+    else {
+        ctx.status = 404;
+    }
+});
+exports.HoldRouter.delete("/:id", auth_1.AuthWall("modify_hold"), async (ctx) => {
     const hold = await data_1.Database.getHoldById(ctx.params.id);
     if (hold) {
         const holder = hold.person;

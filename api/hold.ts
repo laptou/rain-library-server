@@ -111,7 +111,24 @@ HoldRouter.get("/:id", AuthWall("place_hold"), async ctx =>
     }
 });
 
-HoldRouter.delete("/:id", AuthWall("place_hold"), async ctx =>
+HoldRouter.delete("/me/:isbn", AuthWall("place_hold"), async ctx =>
+{
+    const hold =
+        (await Database.getPendingHoldsForPerson(ctx.state.user.id))
+            .filter(h =>  h.isbn === ctx.params.isbn);
+
+    if (hold[0])
+    {
+        await hold[0].remove();
+        ctx.status = 200;
+    }
+    else
+    {
+        ctx.status = 404;
+    }
+});
+
+HoldRouter.delete("/:id", AuthWall("modify_hold"), async ctx =>
 {
     const hold = await Database.getHoldById(ctx.params.id);
 
