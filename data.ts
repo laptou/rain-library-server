@@ -273,6 +273,17 @@ export class Database
         return await query.exec();
     }
 
+    static async getPendingHoldForPerson(person: string | Person, isbn: string): Promise<Hold>
+    {
+        let query = Model.Hold.findOne({
+            person: typeof person === "string" ? person : person.id,
+            isbn,
+            completed: false
+        });
+
+        return await query.exec();
+    }
+
     static async getPersonByUsername(name: string): Promise<Person>
     {
         const query = Model.Person.findOne({ username: name }, null,

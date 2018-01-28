@@ -1,7 +1,7 @@
 import * as Rx from "rxjs/Rx";
 import * as Router from "koa-router";
 import { AuthWall } from "../auth";
-import { Database, Model, Person, Hold } from "../data";
+import { Database, Model, Person, Hold, Book } from "../data";
 import { Logger, LogSource } from "../util";
 import { Context } from "koa";
 
@@ -50,9 +50,19 @@ HoldRouter.get(
 
 HoldRouter.post("/me", AuthWall("place_hold"), async ctx =>
 {
-    if (Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.request.body.isbn))
+    if (await Rx.Observable
+        .from(await Database.getCurrentCheckoutsForUser(ctx.state.user.id))
+        .findIndex(c => (c.book as Book).isbn === ctx.request.body.isbn)
+        .toPromise() !== -1)
     {
         // if the user has already checked this book out, deny access
+        ctx.status = 400;
+        return;
+    }
+
+    if (await Database.getPendingHoldForPerson(ctx.state.user.id, ctx.request.body.isbn))
+    {
+        // if the user already has a hold on this book, deny access
         ctx.status = 400;
         return;
     }

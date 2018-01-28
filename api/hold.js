@@ -31,8 +31,16 @@ const getHolds = (getter) => {
 exports.HoldRouter.get("/me", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getHoldsForPerson(ctx.state.user, false)));
 exports.HoldRouter.get("/me/pending", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getPendingHoldsForPerson(ctx.state.user, false)));
 exports.HoldRouter.post("/me", auth_1.AuthWall("place_hold"), async (ctx) => {
-    if (data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.request.body.isbn)) {
+    if (await Rx.Observable
+        .from(await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id))
+        .findIndex(c => c.book.isbn === ctx.request.body.isbn)
+        .toPromise() !== -1) {
         // if the user has already checked this book out, deny access
+        ctx.status = 400;
+        return;
+    }
+    if (await data_1.Database.getPendingHoldForPerson(ctx.state.user.id, ctx.request.body.isbn)) {
+        // if the user already has a hold on this book, deny access
         ctx.status = 400;
         return;
     }

@@ -1,7 +1,7 @@
 import * as Router from "koa-router";
 import * as Rx from "rxjs";
 import { AuthWall } from "../auth";
-import { Book, Database, Model } from "../data";
+import { Book, Database, Model, Hold } from "../data";
 import { Logger, LogSource } from "../util";
 import { Linq } from "../util/linq";
 
@@ -41,13 +41,17 @@ BookRouter.get("/status/:id", async ctx =>
     }
 
     const book = await Database.getBookById(ctx.params.id);
+    const holds = await Database.getPendingHoldsForBook(book.isbn, false);
+    const position = await Rx.Observable
+        .from(holds)
+        // use double-equals on purpose to coerce conversion of ObjectID to string
+        // tslint:disable-next-line:triple-equals
+        .findIndex((hold: Hold) => hold.person == ctx.state.user.id)
+        .toPromise();
 
-    let holds = await Database.getHoldsForPerson(ctx.state.user.id);
-    holds = holds.filter(h => h.isbn === book.isbn && !h.completed);
-
-    if (holds.length > 0)
+    if (position >= 0)
     {
-        ctx.response.body = { status: BookStatus.OnHold, hold: holds[0] };
+        ctx.response.body = { status: BookStatus.OnHold, hold: holds[position], position };
         return;
     }
 
@@ -86,7 +90,7 @@ BookRouter.get("/search/:query", async ctx =>
     if (limit)
         books = books.take(limit);
 
-    ctx.response.body = books.toArray();
+    ctx.response.body = await books.toArray().toPromise();
 });
 
 BookRouter.get("/search/title/:query", async ctx =>

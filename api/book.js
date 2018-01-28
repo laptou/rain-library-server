@@ -31,10 +31,13 @@ exports.BookRouter.get("/status/:id", async (ctx) => {
         return;
     }
     const book = await data_1.Database.getBookById(ctx.params.id);
-    let holds = await data_1.Database.getHoldsForPerson(ctx.state.user.id);
-    holds = holds.filter(h => h.isbn === book.isbn && !h.completed);
-    if (holds.length > 0) {
-        ctx.response.body = { status: BookStatus.OnHold, hold: holds[0] };
+    const holds = await data_1.Database.getPendingHoldsForBook(book.isbn, false);
+    const position = await Rx.Observable
+        .from(holds)
+        .findIndex((hold) => hold.person == ctx.state.user.id)
+        .toPromise();
+    if (position >= 0) {
+        ctx.response.body = { status: BookStatus.OnHold, hold: holds[position], position };
         return;
     }
     ctx.response.body = { status: BookStatus.None };
@@ -61,7 +64,7 @@ exports.BookRouter.get("/search/:query", async (ctx) => {
         .distinct(book => book.id);
     if (limit)
         books = books.take(limit);
-    ctx.response.body = books.toArray();
+    ctx.response.body = await books.toArray().toPromise();
 });
 exports.BookRouter.get("/search/title/:query", async (ctx) => {
     let limit = null;

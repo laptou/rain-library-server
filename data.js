@@ -156,6 +156,14 @@ class Database {
             query = query.populate("person");
         return await query.exec();
     }
+    static async getPendingHoldForPerson(person, isbn) {
+        let query = exports.Model.Hold.findOne({
+            person: typeof person === "string" ? person : person.id,
+            isbn,
+            completed: false
+        });
+        return await query.exec();
+    }
     static async getPersonByUsername(name) {
         const query = exports.Model.Person.findOne({ username: name }, null, { collation: { locale: "en", strength: 1 } });
         return await query.exec();
