@@ -15,9 +15,9 @@
             "problemMatcher": []
         },
         {
-            "label": "Publish to Staging",
+            "label": "Build & Publish to Staging",
             "type": "shell",
-            "command": "robocopy ./ '\\\\192.168.3.173\\Node Server\\server' *.js *.json /e /xd .* node_modules data /xo /xf tsconfig.json tslint.json",
+            "command": "tsc && robocopy ./ \"\\\\192.168.3.173\\Node Server\\server\" *.js *.json /e /xd .* node_modules data /xo /xf tsconfig.json tslint.json",
             "problemMatcher": []
         },
         {
