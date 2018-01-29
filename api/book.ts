@@ -19,7 +19,7 @@ export let BookRouter = new Router();
 
 BookRouter.get("/:isbn", async ctx =>
 {
-    ctx.response.body = await Database.getBooksByIsbn(ctx.params.isbn);
+    ctx.response.body = await Database.getBookByIsbn(ctx.params.isbn);
 });
 
 BookRouter.get("/status/:isbn", async ctx =>
@@ -53,11 +53,23 @@ BookRouter.get("/status/:isbn", async ctx =>
     ctx.response.body = { status: BookStatus.None };
 });
 
-BookRouter.post("/id/:id", AuthWall("modify_book"), async ctx =>
+BookRouter.post("/id/:id", AuthWall("modify_book"), ctx =>
 {
     const model = new Model.Book(ctx.body);
-    await Database.saveBook(model);
-    ctx.status = 200;
+    return new Promise((resolve, reject) =>
+    {
+        model.save(null, (err) =>
+        {
+            if (err)
+            {
+                ctx.status = 500;
+            }
+
+            ctx.status = 200;
+
+            resolve();
+        });
+    });
 });
 
 BookRouter.get("/author/:id", async ctx =>
@@ -78,8 +90,8 @@ BookRouter.get("/search/:query", async ctx =>
 
     let books =
         Rx.Observable.from([
-            ...await Database.searchBooksByTitle(ctx.params.query, true, limit),
-            ...await Database.searchBooks(ctx.params.query, true, limit)])
+            ...await Database.searchBooksByTitle(ctx.params.query, { populate: true, limit }),
+            ...await Database.searchBooks(ctx.params.query, { populate: true, limit })])
             .distinct(book => book.id);
 
     if (limit)
