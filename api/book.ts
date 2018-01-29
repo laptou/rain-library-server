@@ -17,19 +17,14 @@ enum BookStatus
 const logger = new Logger(LogSource.Api);
 export let BookRouter = new Router();
 
-BookRouter.get("/isbn/:isbn", async ctx =>
+BookRouter.get("/:isbn", async ctx =>
 {
     ctx.response.body = await Database.getBooksByIsbn(ctx.params.isbn);
 });
 
-BookRouter.get("/id/:id", async ctx =>
+BookRouter.get("/status/:isbn", async ctx =>
 {
-    ctx.response.body = await Database.getBookById(ctx.params.id);
-});
-
-BookRouter.get("/status/:id", async ctx =>
-{
-    const checkout = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.id);
+    const checkout = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
 
     if (checkout)
     {
