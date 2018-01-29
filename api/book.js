@@ -85,6 +85,6 @@ exports.BookRouter.get("/search/title/:query", async (ctx) => {
     let limit = null;
     if (ctx.query.limit)
         limit = parseInt(limit, 10);
-    ctx.response.body = await data_1.Database.searchBooksByTitle(ctx.params.query, limit);
+    ctx.response.body = await data_1.Database.searchBooksByTitle(ctx.params.query, { limit });
 });
 //# sourceMappingURL=book.js.map

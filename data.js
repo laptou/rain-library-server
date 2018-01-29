@@ -177,33 +177,29 @@ class Database {
         }), options);
     }
     static async getHolds(query, options) {
-        if (options) {
-            if (options.options)
-                query = query.populate("person");
-            if (options.limit)
-                query = query.limit(options.limit);
-        }
+        // populate by default
+        if (!options || options && options.populate)
+            query = query.populate("person");
+        if (options && options.limit)
+            query = query.limit(options.limit);
         return await query.exec();
     }
     static async getBooks(query, options) {
-        if (options) {
-            if (options.populate)
-                query = query.populate("authors");
-            if (options.limit)
-                query = query.limit(options.limit);
-        }
+        // populate by default
+        if (!options || options && options.populate)
+            query = query.populate("authors");
+        if (options && options.limit)
+            query = query.limit(options.limit);
         return await query.exec();
     }
     static async getCheckouts(query, options) {
-        if (options) {
-            if (options.populate)
-                query = query.populate({
-                    path: "book",
-                    populate: { path: "authors" }
-                });
-            if (options.limit)
-                query = query.limit(options.limit);
-        }
+        if (!options || options && options.populate)
+            query = query.populate({
+                path: "book",
+                populate: { path: "authors" }
+            });
+        if (options.limit)
+            query = query.limit(options.limit);
         return await query.exec();
     }
 }

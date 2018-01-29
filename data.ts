@@ -317,14 +317,12 @@ export class Database
     private static async getHolds(query: mongoose.DocumentQuery<Hold, Hold>, options): Promise<Hold>;
     private static async getHolds(query: mongoose.DocumentQuery<Hold[] | Hold, Hold>, options)
     {
-        if (options)
-        {
-            if (options.options)
-                query = query.populate("person");
+        // populate by default
+        if (!options || options && options.populate)
+            query = query.populate("person");
 
-            if (options.limit)
-                query = query.limit(options.limit);
-        }
+        if (options && options.limit)
+            query = query.limit(options.limit);
 
         return await query.exec();
     }
@@ -333,14 +331,12 @@ export class Database
     private static async getBooks(query: mongoose.DocumentQuery<Book, Book>, options): Promise<Book>;
     private static async getBooks(query: mongoose.DocumentQuery<Book[] | Book, Book>, options)
     {
-        if (options)
-        {
-            if (options.populate)
-                query = query.populate("authors");
+        // populate by default
+        if (!options || options && options.populate)
+            query = query.populate("authors");
 
-            if (options.limit)
-                query = query.limit(options.limit);
-        }
+        if (options && options.limit)
+            query = query.limit(options.limit);
 
         return await query.exec();
     }
@@ -351,17 +347,14 @@ export class Database
     private static async getCheckouts(query: mongoose.DocumentQuery<Checkout, Checkout>, options): Promise<Checkout>;
     private static async getCheckouts(query: mongoose.DocumentQuery<Checkout[] | Checkout, Checkout>, options)
     {
-        if (options)
-        {
-            if (options.populate)
-                query = query.populate({
-                    path: "book",
-                    populate: { path: "authors" }
-                });
+        if (!options || options && options.populate)
+            query = query.populate({
+                path: "book",
+                populate: { path: "authors" }
+            });
 
-            if (options.limit)
-                query = query.limit(options.limit);
-        }
+        if (options.limit)
+            query = query.limit(options.limit);
 
         return await query.exec();
     }
