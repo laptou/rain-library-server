@@ -56,7 +56,7 @@ const schema = {
             due: Date,
             completed: Boolean,
             penalty_factor: Number,
-            book: mongoose.Schema.Types.ObjectId,
+            bookId: { type: mongoose.Schema.Types.ObjectId, alias: "book" },
             person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
         }, { toObject: { virtuals: true }, toJSON: { virtuals: true } }),
     Hold: new mongoose.Schema(
@@ -70,7 +70,7 @@ const schema = {
         {
             date: Date,
             completed: Boolean,
-            book: mongoose.Schema.Types.ObjectId,
+            bookId: { type: mongoose.Schema.Types.ObjectId, alias: "book" },
             person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" },
             amount: mongoose.Schema.Types.Decimal128
         }, { toObject: { virtuals: true }, toJSON: { virtuals: true } })

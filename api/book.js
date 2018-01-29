@@ -15,14 +15,35 @@ var BookStatus;
 })(BookStatus || (BookStatus = {}));
 const logger = new util_1.Logger(util_1.LogSource.Api);
 exports.BookRouter = new Router();
-exports.BookRouter.get("/isbn/:isbn", async (ctx) => {
-    ctx.response.body = await data_1.Database.getBooksByIsbn(ctx.params.isbn);
+const isbnValidator = async (isbn, ctx, next) => {
+    if (isbn.match(/^(\d{10}|\d{13})$/)) {
+        await next();
+    }
+};
+exports.BookRouter
+    .param("isbn", isbnValidator)
+    .get("/:isbn", async (ctx, next) => {
+    ctx.response.body = await data_1.Database.getBookByIsbn(ctx.params.isbn);
+})
+    .post("/:isbn", auth_1.AuthWall("modify_book"), ctx => {
+    const model = new data_1.Model.Book(ctx.body);
+    return new Promise((resolve, reject) => {
+        model.save(null, (err) => {
+            if (err) {
+                ctx.status = 500;
+            }
+            ctx.status = 200;
+            resolve();
+        });
+    });
 });
-exports.BookRouter.get("/id/:id", async (ctx) => {
-    ctx.response.body = await data_1.Database.getBookById(ctx.params.id);
-});
-exports.BookRouter.get("/status/:id", async (ctx) => {
-    const checkout = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.id);
+exports.BookRouter
+    .param("isbn", isbnValidator)
+    .get("/status/checked_out", auth_1.AuthWall(), async (ctx) => {
+    ctx.response.body = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id);
+})
+    .get("/status/:isbn", auth_1.AuthWall(), async (ctx) => {
+    const checkout = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
     if (checkout) {
         if (checkout.due < new Date())
             ctx.response.body = { status: BookStatus.Overdue, checkout };
@@ -30,8 +51,7 @@ exports.BookRouter.get("/status/:id", async (ctx) => {
             ctx.response.body = { status: BookStatus.CheckedOut, checkout };
         return;
     }
-    const book = await data_1.Database.getBookById(ctx.params.id);
-    const holds = await data_1.Database.getPendingHoldsForBook(book.isbn, false);
+    const holds = await data_1.Database.getPendingHoldsForBook(checkout.book.isbn);
     const position = await Rx.Observable
         .from(holds)
         .findIndex((hold) => hold.person == ctx.state.user.id)
@@ -41,11 +61,6 @@ exports.BookRouter.get("/status/:id", async (ctx) => {
         return;
     }
     ctx.response.body = { status: BookStatus.None };
-});
-exports.BookRouter.post("/id/:id", auth_1.AuthWall("modify_book"), async (ctx) => {
-    const model = new data_1.Model.Book(ctx.body);
-    await data_1.Database.saveBook(model);
-    ctx.status = 200;
 });
 exports.BookRouter.get("/author/:id", async (ctx) => {
     ctx.response.body = await data_1.Database.getBooksByAuthor(ctx.params.id);
@@ -58,8 +73,8 @@ exports.BookRouter.get("/search/:query", async (ctx) => {
     if (ctx.query.limit)
         limit = parseInt(ctx.query.limit, 10);
     let books = Rx.Observable.from([
-        ...await data_1.Database.searchBooksByTitle(ctx.params.query, true, limit),
-        ...await data_1.Database.searchBooks(ctx.params.query, true, limit)
+        ...await data_1.Database.searchBooksByTitle(ctx.params.query, { populate: true, limit }),
+        ...await data_1.Database.searchBooks(ctx.params.query, { populate: true, limit })
     ])
         .distinct(book => book.id);
     if (limit)
@@ -71,8 +86,5 @@ exports.BookRouter.get("/search/title/:query", async (ctx) => {
     if (ctx.query.limit)
         limit = parseInt(limit, 10);
     ctx.response.body = await data_1.Database.searchBooksByTitle(ctx.params.query, limit);
-});
-exports.BookRouter.get("/checked_out", auth_1.AuthWall(), async (ctx) => {
-    ctx.response.body = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id);
 });
 //# sourceMappingURL=book.js.map

@@ -13,23 +13,20 @@ const getHolds = (getter) => {
             .from(await getter(ctx))
             .flatMap(async (h) => {
             const checkouts = await data_1.Database.getCheckoutsForIsbn(h.isbn);
-            const copies = await data_1.Database.getBooksByIsbn(h.isbn, false);
-            let ready = copies.length > checkouts.length;
+            const book = await data_1.Database.getBookByIsbn(h.isbn);
+            let ready = book.copies.length > checkouts.length;
             if (ready) {
-                const holds = await data_1.Database.getPendingHoldsForBook(h.isbn, false);
+                const holds = await data_1.Database.getPendingHoldsForBook(h.isbn);
                 ready = holds[0].id === h.id;
             }
-            // if we make two calls instead of just using the first one
-            // then we can use population for just one of the books
-            const copy = await data_1.Database.getBookById(copies[0]._id);
-            return Object.assign(h.toJSON(), { ready, book: copy });
+            return Object.assign(h.toJSON(), { ready, book });
         })
             .toArray()
             .toPromise();
     };
 };
-exports.HoldRouter.get("/me", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getHoldsForPerson(ctx.state.user, false)));
-exports.HoldRouter.get("/me/pending", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getPendingHoldsForPerson(ctx.state.user, false)));
+exports.HoldRouter.get("/me", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getHoldsForPerson(ctx.state.user)));
+exports.HoldRouter.get("/me/pending", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getPendingHoldsForPerson(ctx.state.user)));
 exports.HoldRouter.post("/me", auth_1.AuthWall("place_hold"), async (ctx) => {
     if (await Rx.Observable
         .from(await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id))
@@ -44,12 +41,12 @@ exports.HoldRouter.post("/me", auth_1.AuthWall("place_hold"), async (ctx) => {
         ctx.status = 400;
         return;
     }
-    await data_1.Database.saveHold(new data_1.Model.Hold({
+    await new data_1.Model.Hold({
         date: new Date(),
         person: ctx.state.user.id,
         isbn: ctx.request.body.isbn,
         completed: false
-    }));
+    }).save();
     ctx.status = 200;
 });
 exports.HoldRouter.get("/person/:id", auth_1.AuthWall("modify_hold"), getHolds(ctx => data_1.Database.getHoldsForPerson(ctx.params.id)));

@@ -15,66 +15,76 @@ enum BookStatus
 }
 
 const logger = new Logger(LogSource.Api);
+
 export let BookRouter = new Router();
-
-BookRouter.get("/:isbn", async ctx =>
+const isbnValidator = async (isbn, ctx, next) =>
 {
-    ctx.response.body = await Database.getBookByIsbn(ctx.params.isbn);
-});
-
-BookRouter.post("/:isbn", AuthWall("modify_book"), ctx =>
-{
-    const model = new Model.Book(ctx.body);
-    return new Promise((resolve, reject) =>
+    if (isbn.match(/^(\d{10}|\d{13})$/))
     {
-        model.save(null, (err) =>
+        await next();
+    }
+};
+
+BookRouter
+    .param("isbn", isbnValidator)
+    .get("/:isbn", async (ctx, next) =>
+    {
+        ctx.response.body = await Database.getBookByIsbn(ctx.params.isbn);
+    })
+    .post("/:isbn", AuthWall("modify_book"), ctx =>
+    {
+        const model = new Model.Book(ctx.body);
+        return new Promise((resolve, reject) =>
         {
-            if (err)
+            model.save(null, (err) =>
             {
-                ctx.status = 500;
-            }
+                if (err)
+                {
+                    ctx.status = 500;
+                }
 
-            ctx.status = 200;
+                ctx.status = 200;
 
-            resolve();
+                resolve();
+            });
         });
     });
-});
 
-BookRouter.get(/\/status\/(\d{13}|\d{10})/, async ctx =>
-{
-    const checkout = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params[0]);
-
-    if (checkout)
+BookRouter
+    .param("isbn", isbnValidator)
+    .get("/status/checked_out", AuthWall(), async ctx =>
     {
-        if (checkout.due < new Date())
-            ctx.response.body = { status: BookStatus.Overdue, checkout };
-        else
-            ctx.response.body = { status: BookStatus.CheckedOut, checkout };
-        return;
-    }
-
-    const holds = await Database.getPendingHoldsForBook((checkout.book as Book).isbn);
-    const position = await Rx.Observable
-        .from(holds)
-        // use double-equals on purpose to coerce conversion of ObjectID to string
-        // tslint:disable-next-line:triple-equals
-        .findIndex((hold: Hold) => hold.person == ctx.state.user.id)
-        .toPromise();
-
-    if (position >= 0)
+        ctx.response.body = await Database.getCurrentCheckoutsForUser(ctx.state.user.id);
+    })
+    .get("/status/:isbn", AuthWall(), async ctx =>
     {
-        ctx.response.body = { status: BookStatus.OnHold, hold: holds[position], position };
-        return;
-    }
+        const checkout = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
 
-    ctx.response.body = { status: BookStatus.None };
-});
+        if (checkout)
+        {
+            if (checkout.due < new Date())
+                ctx.response.body = { status: BookStatus.Overdue, checkout };
+            else
+                ctx.response.body = { status: BookStatus.CheckedOut, checkout };
+            return;
+        }
 
-BookRouter.get("/status/checked_out", AuthWall(), async ctx =>
-{
-    ctx.response.body = await Database.getCurrentCheckoutsForUser(ctx.state.user.id);
-});
+        const holds = await Database.getPendingHoldsForBook((checkout.book as Book).isbn);
+        const position = await Rx.Observable
+            .from(holds)
+            // use double-equals on purpose to coerce conversion of ObjectID to string
+            // tslint:disable-next-line:triple-equals
+            .findIndex((hold: Hold) => hold.person == ctx.state.user.id)
+            .toPromise();
+
+        if (position >= 0)
+        {
+            ctx.response.body = { status: BookStatus.OnHold, hold: holds[position], position };
+            return;
+        }
+
+        ctx.response.body = { status: BookStatus.None };
+    });
 
 BookRouter.get("/author/:id", async ctx =>
 {
@@ -109,5 +119,5 @@ BookRouter.get("/search/title/:query", async ctx =>
     let limit = null;
     if (ctx.query.limit) limit = parseInt(limit, 10);
 
-    ctx.response.body = await Database.searchBooksByTitle(ctx.params.query, limit);
+    ctx.response.body = await Database.searchBooksByTitle(ctx.params.query, { limit });
 });
