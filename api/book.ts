@@ -43,7 +43,7 @@ BookRouter.post("/:isbn", AuthWall("modify_book"), ctx =>
 
 BookRouter.get(/\/status\/(\d{13}|\d{10})/, async ctx =>
 {
-    const checkout = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
+    const checkout = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params[0]);
 
     if (checkout)
     {
@@ -54,8 +54,7 @@ BookRouter.get(/\/status\/(\d{13}|\d{10})/, async ctx =>
         return;
     }
 
-    const book = await Database.getBookById(ctx.params.id);
-    const holds = await Database.getPendingHoldsForBook(book.isbn);
+    const holds = await Database.getPendingHoldsForBook((checkout.book as Book).isbn);
     const position = await Rx.Observable
         .from(holds)
         // use double-equals on purpose to coerce conversion of ObjectID to string
