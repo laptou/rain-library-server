@@ -17,21 +17,17 @@ const getHolds = (getter: (ctx: Context) => Promise<Hold[]>) =>
             .flatMap(async h =>
             {
                 const checkouts = await Database.getCheckoutsForIsbn(h.isbn);
-                const copies = await Database.getBooksByIsbn(h.isbn, false);
+                const book = await Database.getBookByIsbn(h.isbn);
 
-                let ready = copies.length > checkouts.length;
+                let ready = book.copies.length > checkouts.length;
 
                 if (ready)
                 {
-                    const holds = await Database.getPendingHoldsForBook(h.isbn, false);
+                    const holds = await Database.getPendingHoldsForBook(h.isbn);
                     ready = holds[0].id === h.id;
                 }
 
-                // if we make two calls instead of just using the first one
-                // then we can use population for just one of the books
-                const copy = await Database.getBookById(copies[0]._id);
-
-                return Object.assign(h.toJSON(), { ready, book: copy });
+                return Object.assign(h.toJSON(), { ready, book });
             })
             .toArray()
             .toPromise();
@@ -41,12 +37,12 @@ const getHolds = (getter: (ctx: Context) => Promise<Hold[]>) =>
 HoldRouter.get(
     "/me",
     AuthWall("place_hold"),
-    getHolds(ctx => Database.getHoldsForPerson(ctx.state.user, false)));
+    getHolds(ctx => Database.getHoldsForPerson(ctx.state.user)));
 
 HoldRouter.get(
     "/me/pending",
     AuthWall("place_hold"),
-    getHolds(ctx => Database.getPendingHoldsForPerson(ctx.state.user, false)));
+    getHolds(ctx => Database.getPendingHoldsForPerson(ctx.state.user)));
 
 HoldRouter.post("/me", AuthWall("place_hold"), async ctx =>
 {
@@ -67,12 +63,12 @@ HoldRouter.post("/me", AuthWall("place_hold"), async ctx =>
         return;
     }
 
-    await Database.saveHold(new Model.Hold({
+    await new Model.Hold({
         date: new Date(),
         person: ctx.state.user.id,
         isbn: ctx.request.body.isbn,
         completed: false
-    }));
+    }).save();
 
     ctx.status = 200;
 });

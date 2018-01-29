@@ -158,26 +158,32 @@ export interface Fine extends mongoose.Document
     person: string | Person;
 }
 
+export interface QueryOptions
+{
+    populate?: boolean;
+    limit?: number;
+}
+
 export class Database
 {
-    static async getBookById(id: string, options?): Promise<Book>
+    static async getBookById(id: string, options?: QueryOptions): Promise<Book>
     {
         return await Database.getBooks(Model.Book.findById(id), options);
     }
 
-    static async getBooksByAuthor(person: string, options?)
+    static async getBooksByAuthor(person: string, options?: QueryOptions)
     {
         return await Database.getBooks(Model.Book.find({ authors: person }), options);
     }
 
-    static async getBookByIsbn(isbn: string, options?): Promise<Book>
+    static async getBookByIsbn(isbn: string, options?: QueryOptions): Promise<Book>
     {
         return await Database.getBooks(Model.Book
             .findOne({ isbn }),
             options);
     }
 
-    static async getBooksByTitle(title: string, options?): Promise<Book[]>
+    static async getBooksByTitle(title: string, options?: QueryOptions): Promise<Book[]>
     {
         return await Database.getBooks(Model.Book
             .find({ name: title })
@@ -185,21 +191,24 @@ export class Database
             options);
     }
 
-    static async searchBooks(search: string, options?): Promise<Book[]>
+    static async searchBooks(search: string, options?: QueryOptions): Promise<Book[]>
     {
         return await Database.getBooks(Model.Book.find({ $text: { $search: search } }), options);
     }
 
-    static async searchBooksByTitle(search: string, options?): Promise<Book[]>
+    static async searchBooksByTitle(search: string, options?: QueryOptions): Promise<Book[]>
     {
         return await Database.getBooks(Model.Book.find({ name: { $regex: `^${search}`, $options: "i" } }), options);
     }
 
     //#region checkouts
 
-    static async getCurrentCheckoutsForUser(userId: string, isbn: string): Promise<Checkout>;
+    static async getCurrentCheckoutsForUser(userId: string, isbn: string, options?: QueryOptions): Promise<Checkout>;
     static async getCurrentCheckoutsForUser(userId: string): Promise<Checkout[]>;
-    static async getCurrentCheckoutsForUser(userId: string, isbn?: string, options?): Promise<Checkout[] | Checkout>
+    static async getCurrentCheckoutsForUser(
+        userId: string,
+        isbn?: string,
+        options?: QueryOptions): Promise<Checkout[] | Checkout>
     {
         if (isbn)
         {
@@ -221,7 +230,7 @@ export class Database
             options);
     }
 
-    static async getCheckoutsForIsbn(isbn: string, options?): Promise<Checkout[]>
+    static async getCheckoutsForIsbn(isbn: string, options?: QueryOptions): Promise<Checkout[]>
     {
         const book = await Model.Book.findOne({ isbn });
         return await Database.getCheckouts(Model.Checkout
@@ -254,28 +263,28 @@ export class Database
 
     //#region holds
 
-    static async getHoldById(id: string, options): Promise<Hold>
+    static async getHoldById(id: string, options?: QueryOptions): Promise<Hold>
     {
         return await Database.getHolds(Model.Hold
             .findById(id)
             .sort({ date: 1 }), options);
     }
 
-    static async getHoldsForBook(isbn: string, options): Promise<Hold[]>
+    static async getHoldsForBook(isbn: string, options?: QueryOptions): Promise<Hold[]>
     {
         return await Database.getHolds(Model.Hold
             .find({ isbn })
             .sort({ date: 1 }), options);
     }
 
-    static async getPendingHoldsForBook(isbn: string, options): Promise<Hold[]>
+    static async getPendingHoldsForBook(isbn: string, options?: QueryOptions): Promise<Hold[]>
     {
         return await Database.getHolds(Model.Hold
             .find({ isbn, completed: false })
             .sort({ date: 1 }), options);
     }
 
-    static async getHoldsForPerson(person: string | Person, options): Promise<Hold[]>
+    static async getHoldsForPerson(person: string | Person, options?: QueryOptions): Promise<Hold[]>
     {
         return await Database.getHolds(Model.Hold
             .find({
@@ -283,7 +292,7 @@ export class Database
             }), options);
     }
 
-    static async getPendingHoldsForPerson(person: string | Person, options): Promise<Hold[]>
+    static async getPendingHoldsForPerson(person: string | Person, options?: QueryOptions): Promise<Hold[]>
     {
         return await Database.getHolds(Model.Hold
             .find({
@@ -292,7 +301,7 @@ export class Database
             }), options);
     }
 
-    static async getPendingHoldForPerson(person: string | Person, isbn: string, options): Promise<Hold>
+    static async getPendingHoldForPerson(person: string | Person, isbn: string, options?: QueryOptions): Promise<Hold>
     {
         return await Database.getHolds(Model.Hold
             .findOne({

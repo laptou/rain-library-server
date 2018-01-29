@@ -22,38 +22,7 @@ BookRouter.get("/:isbn", async ctx =>
     ctx.response.body = await Database.getBookByIsbn(ctx.params.isbn);
 });
 
-BookRouter.get("/status/:isbn", async ctx =>
-{
-    const checkout = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
-
-    if (checkout)
-    {
-        if (checkout.due < new Date())
-            ctx.response.body = { status: BookStatus.Overdue, checkout };
-        else
-            ctx.response.body = { status: BookStatus.CheckedOut, checkout };
-        return;
-    }
-
-    const book = await Database.getBookById(ctx.params.id);
-    const holds = await Database.getPendingHoldsForBook(book.isbn, false);
-    const position = await Rx.Observable
-        .from(holds)
-        // use double-equals on purpose to coerce conversion of ObjectID to string
-        // tslint:disable-next-line:triple-equals
-        .findIndex((hold: Hold) => hold.person == ctx.state.user.id)
-        .toPromise();
-
-    if (position >= 0)
-    {
-        ctx.response.body = { status: BookStatus.OnHold, hold: holds[position], position };
-        return;
-    }
-
-    ctx.response.body = { status: BookStatus.None };
-});
-
-BookRouter.post("/id/:id", AuthWall("modify_book"), ctx =>
+BookRouter.post("/:isbn", AuthWall("modify_book"), ctx =>
 {
     const model = new Model.Book(ctx.body);
     return new Promise((resolve, reject) =>
@@ -70,6 +39,42 @@ BookRouter.post("/id/:id", AuthWall("modify_book"), ctx =>
             resolve();
         });
     });
+});
+
+BookRouter.get(/\/status\/(\d{13}|\d{10})/, async ctx =>
+{
+    const checkout = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
+
+    if (checkout)
+    {
+        if (checkout.due < new Date())
+            ctx.response.body = { status: BookStatus.Overdue, checkout };
+        else
+            ctx.response.body = { status: BookStatus.CheckedOut, checkout };
+        return;
+    }
+
+    const book = await Database.getBookById(ctx.params.id);
+    const holds = await Database.getPendingHoldsForBook(book.isbn);
+    const position = await Rx.Observable
+        .from(holds)
+        // use double-equals on purpose to coerce conversion of ObjectID to string
+        // tslint:disable-next-line:triple-equals
+        .findIndex((hold: Hold) => hold.person == ctx.state.user.id)
+        .toPromise();
+
+    if (position >= 0)
+    {
+        ctx.response.body = { status: BookStatus.OnHold, hold: holds[position], position };
+        return;
+    }
+
+    ctx.response.body = { status: BookStatus.None };
+});
+
+BookRouter.get("/status/checked_out", AuthWall(), async ctx =>
+{
+    ctx.response.body = await Database.getCurrentCheckoutsForUser(ctx.state.user.id);
 });
 
 BookRouter.get("/author/:id", async ctx =>
@@ -106,9 +111,4 @@ BookRouter.get("/search/title/:query", async ctx =>
     if (ctx.query.limit) limit = parseInt(limit, 10);
 
     ctx.response.body = await Database.searchBooksByTitle(ctx.params.query, limit);
-});
-
-BookRouter.get("/checked_out", AuthWall(), async ctx =>
-{
-    ctx.response.body = await Database.getCurrentCheckoutsForUser(ctx.state.user.id);
 });
