@@ -1,19 +1,21 @@
-(function()
+(function ()
 {
     printjson(db.books.remove(
-    {
-        genre: "test"
-    }));
+        {
+            genre: "test"
+        }));
+
     printjson(db.people.remove(
-    {
-        permissions: "test"
-    }));
+        {
+            permissions: "test"
+        }));
 
     function random(max, num)
     {
         if (num === undefined || num === 1) return Math.floor(Math.random() * Math.floor(max));
         numbers = [];
-        do {
+        do
+        {
             for (var i = 0; i < num; i++)
             {
                 numbers[i] = random(max);
@@ -24,6 +26,9 @@
 
     function get(indices, arr)
     {
+        if (typeof arr === "function")
+            return (typeof indices === 'number' ? [indices] : indices).map(arr);
+
         return (typeof indices === 'number' ? [indices] : indices).map(i => arr[i]);
     }
 
@@ -64,10 +69,10 @@
     {
         let person = {
             name:
-            {
-                first: names[random(names.length)],
-                last: names[random(names.length)]
-            },
+                {
+                    first: names[random(names.length)],
+                    last: names[random(names.length)]
+                },
             permissions: ["author", "test"]
         };
         authors.push(db.people.insertOne(person).insertedId);
@@ -79,6 +84,7 @@
             authors: get(random(authors.length, 1 + random(6)), authors),
             name: sentence(1 + random(4)),
             isbn: isbn(),
+            copies: get(random(4), () => ObjectId()),
             year: NumberInt(1850 + random(300)),
             genre: ["test"].concat(get(random(genres.length, 1 + random(3)), genres))
         };
