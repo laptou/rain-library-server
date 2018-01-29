@@ -105,6 +105,7 @@ class Database {
     static async searchBooksByTitle(search, options) {
         return await Database.getBooks(exports.Model.Book.find({ name: { $regex: `^${search}`, $options: "i" } }), options);
     }
+    //#region checkouts
     static async getCurrentCheckoutsForUser(userId, isbn, options) {
         if (isbn) {
             const book = await exports.Model.Book.findOne({ isbn });
@@ -198,7 +199,7 @@ class Database {
                 path: "book",
                 populate: { path: "authors" }
             });
-        if (options.limit)
+        if (options && options.limit)
             query = query.limit(options.limit);
         return await query.exec();
     }

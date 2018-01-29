@@ -203,12 +203,10 @@ export class Database
 
     //#region checkouts
 
-    static async getCurrentCheckoutsForUser(userId: string, isbn: string, options?: QueryOptions): Promise<Checkout>;
-    static async getCurrentCheckoutsForUser(userId: string): Promise<Checkout[]>;
     static async getCurrentCheckoutsForUser(
         userId: string,
         isbn?: string,
-        options?: QueryOptions): Promise<Checkout[] | Checkout>
+        options?: QueryOptions): Promise<Checkout[]>
     {
         if (isbn)
         {
@@ -353,7 +351,7 @@ export class Database
                 populate: { path: "authors" }
             });
 
-        if (options.limit)
+        if (options && options.limit)
             query = query.limit(options.limit);
 
         return await query.exec();

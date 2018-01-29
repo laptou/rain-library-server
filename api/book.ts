@@ -58,10 +58,12 @@ BookRouter
     })
     .get("/status/:isbn", AuthWall(), async ctx =>
     {
-        const checkout = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
+        const checkouts = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
 
-        if (checkout)
+        if (checkouts.length > 0)
         {
+            const checkout = checkouts.sort((a, b) => a.start < b.start ? -1 : 1)[0];
+            
             if (checkout.due < new Date())
                 ctx.response.body = { status: BookStatus.Overdue, checkout };
             else
@@ -69,12 +71,10 @@ BookRouter
             return;
         }
 
-        const holds = await Database.getPendingHoldsForBook((checkout.book as Book).isbn);
+        const holds = await Database.getPendingHoldsForBook(ctx.params.isbn, { populate: false });
         const position = await Rx.Observable
             .from(holds)
-            // use double-equals on purpose to coerce conversion of ObjectID to string
-            // tslint:disable-next-line:triple-equals
-            .findIndex((hold: Hold) => hold.person == ctx.state.user.id)
+            .findIndex((hold: Hold) => hold.person.toString() === ctx.state.user.id)
             .toPromise();
 
         if (position >= 0)

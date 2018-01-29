@@ -43,18 +43,19 @@ exports.BookRouter
     ctx.response.body = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id);
 })
     .get("/status/:isbn", auth_1.AuthWall(), async (ctx) => {
-    const checkout = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
-    if (checkout) {
+    const checkouts = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
+    if (checkouts.length > 0) {
+        const checkout = checkouts.sort((a, b) => a.start < b.start ? -1 : 1)[0];
         if (checkout.due < new Date())
             ctx.response.body = { status: BookStatus.Overdue, checkout };
         else
             ctx.response.body = { status: BookStatus.CheckedOut, checkout };
         return;
     }
-    const holds = await data_1.Database.getPendingHoldsForBook(checkout.book.isbn);
+    const holds = await data_1.Database.getPendingHoldsForBook(ctx.params.isbn, { populate: false });
     const position = await Rx.Observable
         .from(holds)
-        .findIndex((hold) => hold.person == ctx.state.user.id)
+        .findIndex((hold) => hold.person.toString() === ctx.state.user.id)
         .toPromise();
     if (position >= 0) {
         ctx.response.body = { status: BookStatus.OnHold, hold: holds[position], position };
