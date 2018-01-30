@@ -196,7 +196,7 @@ printjson(db.people.update({ _id: ObjectId("5a5624d00408d33ed0c28ce4") },
     {
         "password": "$2a$12$pRcEPIMwrwj9D81xSvU.vO98GLOy607GIFdmJvaeXAO03OviEkRcu",
         "username": "rEeraa",
-        "permissions": ["user", "place_hold"],
+        "permissions": ["user", "place_hold", "admin"],
         "name": { "first": "ree", "last": "raa" }
     },
     { upsert: true }));
