@@ -21,9 +21,9 @@ exports.PersonRouter.get("/username/:un", async (ctx) => {
         ctx.response.body = err.message;
     }
 });
-exports.PersonRouter.get("/search/:name", async (ctx) => {
+exports.PersonRouter.get("/search/:query", async (ctx) => {
     try {
-        // ctx.response.body = await Database.peop(ctx.params.name);
+        ctx.response.body = await data_1.Database.searchPeople(ctx.params.query);
     }
     catch (err) {
         ctx.response.status = 403;

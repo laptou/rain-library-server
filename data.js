@@ -24,7 +24,8 @@ const schema = {
         permissions: [{ type: String }],
         password: String
     }, {
-        toObject: { virtuals: true }, toJSON: {
+        toObject: { virtuals: true },
+        toJSON: {
             virtuals: true,
             transform: (doc, ret, options) => {
                 delete ret.password;
@@ -91,16 +92,26 @@ class Database {
         return await Database.getBooks(exports.Model.Book.find({ authors: person }), options);
     }
     static async getBookByIsbn(isbn, options) {
-        return await Database.getBooks(exports.Model.Book
-            .findOne({ isbn }), options);
+        return await Database.getBooks(exports.Model.Book.findOne({ isbn }), options);
     }
     static async getBooksByTitle(title, options) {
-        return await Database.getBooks(exports.Model.Book
-            .find({ name: title })
-            .collation({ locale: "en", strength: 1 }), options);
+        return await Database.getBooks(exports.Model.Book.find({ name: title }).collation({
+            locale: "en",
+            strength: 1
+        }), options);
     }
     static async searchBooks(search, options) {
         return await Database.getBooks(exports.Model.Book.find({ $text: { $search: search } }), options);
+    }
+    static async searchPeople(search, options) {
+        return (await exports.Model.Person.aggregate([
+            {
+                $addFields: {
+                    "name.full": { $concat: ["$name.first", " ", "$name.last"] }
+                }
+            },
+            { $match: { "name.full": { $regex: `^${search}`, $options: "i" } } }
+        ])).map(o => new exports.Model.Person(o));
     }
     static async searchBooksByTitle(search, options) {
         return await Database.getBooks(exports.Model.Book.find({ name: { $regex: `^${search}`, $options: "i" } }), options);
@@ -109,23 +120,20 @@ class Database {
     static async getCurrentCheckoutsForUser(userId, isbn, options) {
         if (isbn) {
             const book = await exports.Model.Book.findOne({ isbn });
-            return await Database.getCheckouts(exports.Model.Checkout
-                .find({
+            return await Database.getCheckouts(exports.Model.Checkout.find({
                 completed: false,
                 person: userId,
                 book: { $in: book.copies }
             }), options);
         }
-        return await Database.getCheckouts(exports.Model.Checkout
-            .find({
+        return await Database.getCheckouts(exports.Model.Checkout.find({
             completed: false,
             person: userId
         }), options);
     }
     static async getCheckoutsForIsbn(isbn, options) {
         const book = await exports.Model.Book.findOne({ isbn });
-        return await Database.getCheckouts(exports.Model.Checkout
-            .find({
+        return await Database.getCheckouts(exports.Model.Checkout.find({
             book: { $in: book.copies }
         }), options);
     }
@@ -136,42 +144,35 @@ class Database {
         return await query.exec();
     }
     static async getPersonByUsername(name) {
-        const query = exports.Model.Person.findOne({ username: name }, null, { collation: { locale: "en", strength: 1 } });
+        const query = exports.Model.Person.findOne({ username: name }, null, {
+            collation: { locale: "en", strength: 1 }
+        });
         return await query.exec();
     }
     //#endregion
     //#region holds
     static async getHoldById(id, options) {
-        return await Database.getHolds(exports.Model.Hold
-            .findById(id)
-            .sort({ date: 1 }), options);
+        return await Database.getHolds(exports.Model.Hold.findById(id).sort({ date: 1 }), options);
     }
     static async getHoldsForBook(isbn, options) {
-        return await Database.getHolds(exports.Model.Hold
-            .find({ isbn })
-            .sort({ date: 1 }), options);
+        return await Database.getHolds(exports.Model.Hold.find({ isbn }).sort({ date: 1 }), options);
     }
     static async getPendingHoldsForBook(isbn, options) {
-        return await Database.getHolds(exports.Model.Hold
-            .find({ isbn, completed: false })
-            .sort({ date: 1 }), options);
+        return await Database.getHolds(exports.Model.Hold.find({ isbn, completed: false }).sort({ date: 1 }), options);
     }
     static async getHoldsForPerson(person, options) {
-        return await Database.getHolds(exports.Model.Hold
-            .find({
-            person: typeof person === "string" ? person : person.id,
+        return await Database.getHolds(exports.Model.Hold.find({
+            person: typeof person === "string" ? person : person.id
         }), options);
     }
     static async getPendingHoldsForPerson(person, options) {
-        return await Database.getHolds(exports.Model.Hold
-            .find({
+        return await Database.getHolds(exports.Model.Hold.find({
             person: typeof person === "string" ? person : person.id,
             completed: false
         }), options);
     }
     static async getPendingHoldForPerson(person, isbn, options) {
-        return await Database.getHolds(exports.Model.Hold
-            .findOne({
+        return await Database.getHolds(exports.Model.Hold.findOne({
             person: typeof person === "string" ? person : person.id,
             isbn,
             completed: false
@@ -179,7 +180,7 @@ class Database {
     }
     static async getHolds(query, options) {
         // populate by default
-        if (!options || options && options.populate)
+        if (!options || (options && options.populate))
             query = query.populate("person");
         if (options && options.limit)
             query = query.limit(options.limit);
@@ -187,14 +188,19 @@ class Database {
     }
     static async getBooks(query, options) {
         // populate by default
-        if (!options || options && options.populate)
+        if (!options || (options && options.populate))
             query = query.populate("authors");
         if (options && options.limit)
             query = query.limit(options.limit);
         return await query.exec();
     }
+    static async getPeople(query, options) {
+        if (options && options.limit)
+            query = query.limit(options.limit);
+        return await query.exec();
+    }
     static async getCheckouts(query, options) {
-        if (!options || options && options.populate)
+        if (!options || (options && options.populate))
             query = query.populate({
                 path: "book",
                 populate: { path: "authors" }

@@ -19,13 +19,17 @@ KoaPassport.use("local-register", new passport_local_1.Strategy({ passReqToCallb
         let person = await data_1.Database.getPersonByUsername(username);
         let valid = true;
         if (person) {
-            done(null, null, { message: "User with this name already exists." });
+            done(null, null, {
+                message: "User with this name already exists."
+            });
             valid = false;
         }
         let first = req.body.name.first || req.body.firstName;
         let last = req.body.name.last || req.body.lastName;
         if (!first || !last) {
-            done(null, null, { message: "First and last name are required to create a new user." });
+            done(null, null, {
+                message: "First and last name are required to create a new user."
+            });
             valid = false;
         }
         if (valid) {
@@ -48,7 +52,9 @@ KoaPassport.use("local-login", new passport_local_1.Strategy({ passReqToCallback
         let person = await data_1.Database.getPersonByUsername(username);
         if (person) {
             if (person.permissions.indexOf("user") === -1) {
-                done(null, null, { message: "This person does not have the required permissions. " });
+                done(null, null, {
+                    message: "This person does not have the required permissions. "
+                });
                 return;
             }
             if (await bcrypt.compare(password, person.password)) {
@@ -63,14 +69,14 @@ KoaPassport.use("local-login", new passport_local_1.Strategy({ passReqToCallback
     }
 }));
 exports.AuthRouter = new Router();
-exports.AuthWall = function (...permissions) {
+exports.AuthWall = (...permissions) => {
     if (permissions.length === 0)
         permissions = ["user"];
     return async (ctx, next) => {
         let authenticated = ctx.isAuthenticated();
         if (authenticated) {
             if (ctx.state.user.permissions.indexOf("admin") !== -1) {
-                for (let permission of permissions) {
+                for (const permission of permissions) {
                     if (ctx.state.user.permissions.indexOf(permission) === -1) {
                         authenticated = false;
                         break;
@@ -90,7 +96,12 @@ exports.AuthWall = function (...permissions) {
 };
 exports.AuthRouter.get("/me", exports.AuthWall(), async (ctx) => {
     const user = ctx.state.user;
-    ctx.body = { id: user.id, name: user.name, username: user.username, permissions: user.permissions };
+    ctx.body = {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        permissions: user.permissions
+    };
 });
 exports.AuthRouter.get("/logout", exports.AuthWall(), async (ctx) => {
     ctx.logout();
