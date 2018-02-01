@@ -154,11 +154,11 @@ printjson(
                 required: ["name", "permissions"],
                 properties: {
                     username: { bsonType: "string" },
-                    bookLimits: {
+                    limits: {
                         bsonType: "object",
                         properties: {
-                            day: { bsonType: "int" },
-                            book: { bsonType: "int" }
+                            days: { bsonType: "int" },
+                            books: { bsonType: "int" }
                         }
                     },
                     name: {
