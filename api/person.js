@@ -4,7 +4,7 @@ const Router = require("koa-router");
 const auth_1 = require("../auth");
 const data_1 = require("../data");
 exports.PersonRouter = new Router();
-exports.PersonRouter.get("/id/:id", async (ctx) => {
+exports.PersonRouter.get("/:id", async (ctx) => {
     try {
         ctx.response.body = await data_1.Database.getPersonById(ctx.params.id);
     }
@@ -38,11 +38,12 @@ exports.PersonRouter.post("/:id", auth_1.AuthWall("modify_person"), async (ctx) 
             return; // will fallback to 404
         }
         const data = ctx.request.body;
+        const schema = data_1.Model.Person.schema.obj;
         // make sure it doesn't contain any weird keys
         for (const key in data) {
             if (!data.hasOwnProperty(key))
                 continue;
-            if (!(key in data_1.Model.Person.schema.obj)) {
+            if (!(key in schema)) {
                 ctx.status = 400;
                 return;
             }
@@ -56,7 +57,7 @@ exports.PersonRouter.post("/:id", auth_1.AuthWall("modify_person"), async (ctx) 
                     ctx.status = 400;
                     return;
                 }
-                if (person.permissions.every(p => data.permissions.indexOf(p) !== -1)) {
+                if (!person.permissions.every(p => data.permissions.indexOf(p) !== -1)) {
                     ctx.status = 403;
                     return;
                 }

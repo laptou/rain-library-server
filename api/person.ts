@@ -5,7 +5,7 @@ import { Database, Model } from "../data";
 
 export const PersonRouter = new Router();
 
-PersonRouter.get("/id/:id", async ctx => {
+PersonRouter.get("/:id", async ctx => {
     try {
         ctx.response.body = await Database.getPersonById(ctx.params.id);
     } catch (err) {
@@ -40,12 +40,13 @@ PersonRouter.post("/:id", AuthWall("modify_person"), async ctx => {
         }
 
         const data = ctx.request.body;
+        const schema = Model.Person.schema.obj;
 
         // make sure it doesn't contain any weird keys
         for (const key in data) {
             if (!data.hasOwnProperty(key)) continue;
 
-            if (!(key in Model.Person.schema.obj)) {
+            if (!(key in schema)) {
                 ctx.status = 400;
                 return;
             }
@@ -63,7 +64,7 @@ PersonRouter.post("/:id", AuthWall("modify_person"), async ctx => {
                 }
 
                 if (
-                    person.permissions.every(
+                    !person.permissions.every(
                         p => data.permissions.indexOf(p) !== -1
                     )
                 ) {
