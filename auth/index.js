@@ -75,7 +75,7 @@ exports.AuthWall = (...permissions) => {
     return async (ctx, next) => {
         let authenticated = ctx.isAuthenticated();
         if (authenticated) {
-            if (ctx.state.user.permissions.indexOf("admin") !== -1) {
+            if (ctx.state.user.permissions.indexOf("admin") === -1) {
                 for (const permission of permissions) {
                     if (ctx.state.user.permissions.indexOf(permission) === -1) {
                         authenticated = false;

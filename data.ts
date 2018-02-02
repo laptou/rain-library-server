@@ -3,7 +3,6 @@ import * as mongoose from "mongoose";
 import * as config from "./config";
 import { Logger, LogSource } from "./util";
 
-mongoose.connect(config.db, { useMongoClient: true });
 require("mongoose").Promise = Promise; // use require() to get rid of TS error
 
 const dev = process.env.NODE_ENV === "development";
@@ -12,16 +11,18 @@ const conn = mongoose.connection;
 
 const logger = new Logger(LogSource.Database);
 
-conn.on("error", err => {
-    logger.error("Failed to connect to database.");
-    logger.error(err);
-
-    if (dev) mongoose.connect("mongodb://localhost/library");
-});
-
-conn.on("open", () => {
-    logger.info("Successfully connected to database.");
-});
+mongoose
+    .connect(config.db, { useMongoClient: true })
+    .catch(err => {
+        logger.error("Database connection failed: " + err);
+        if (dev) {
+            mongoose.connect("mongodb://localhost/library");
+            logger.info("Attempting to connect to localhost");
+        }
+    })
+    .then(() => {
+        logger.info("Successfully connected to database.");
+    });
 
 const schema = {
     Person: new mongoose.Schema(
@@ -29,7 +30,10 @@ const schema = {
             username: String,
             name: { first: String, last: String },
             permissions: [{ type: String }],
-            password: String
+            limits: { days: Number, books: Number },
+            password: String,
+            wiki: String,
+            bio: String
         },
         {
             toObject: { virtuals: true },

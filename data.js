@@ -3,18 +3,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose = require("mongoose");
 const config = require("./config");
 const util_1 = require("./util");
-mongoose.connect(config.db, { useMongoClient: true });
 require("mongoose").Promise = Promise; // use require() to get rid of TS error
 const dev = process.env.NODE_ENV === "development";
 const conn = mongoose.connection;
 const logger = new util_1.Logger(util_1.LogSource.Database);
-conn.on("error", err => {
-    logger.error("Failed to connect to database.");
-    logger.error(err);
-    if (dev)
+mongoose
+    .connect(config.db, { useMongoClient: true })
+    .catch(err => {
+    logger.error("Database connection failed: " + err);
+    if (dev) {
         mongoose.connect("mongodb://localhost/library");
-});
-conn.on("open", () => {
+        logger.info("Attempting to connect to localhost");
+    }
+})
+    .then(() => {
     logger.info("Successfully connected to database.");
 });
 const schema = {
@@ -22,7 +24,10 @@ const schema = {
         username: String,
         name: { first: String, last: String },
         permissions: [{ type: String }],
-        password: String
+        limits: { days: Number, books: Number },
+        password: String,
+        wiki: String,
+        bio: String
     }, {
         toObject: { virtuals: true },
         toJSON: {
