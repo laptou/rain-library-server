@@ -28,6 +28,20 @@ BookRouter
     })
     .post("/:isbn", AuthWall("modify_book"), ctx =>
     {
+        if (!validate.Object(ctx.body, {
+            name: "string",
+            edition: { version: "number", publisher: "string" },
+            authors: ["string"],
+            copies: ["string"],
+            genre: ["string"],
+            rating: "number",
+            isbn: "string",
+        }))
+        {
+            ctx.status = 400;
+            return;
+        }
+
         const model = new Model.Book(ctx.body);
         return new Promise((resolve, reject) =>
         {
@@ -49,7 +63,17 @@ BookRouter
     .param("id", validate.Id)
     .post("/:id/check_out", AuthWall("check_out"), async ctx =>
     {
-        const user = await Database.getPersonById(ctx.body.user_id);
+        if (!validate.Object(ctx.request.body, {
+            user: "string",
+            length: "number?",
+            penalty_factor: "string?"
+        }))
+        {
+            ctx.status = 400;
+            return;
+        }
+
+        const user = await Database.getPersonById(ctx.request.body.user);
         if (!user)
         {
             ctx.status = 404;
@@ -65,11 +89,13 @@ BookRouter
             return;
         }
 
+        const length = Math.min(parseFloat(ctx.body.length), user.limits ? user.limits.days : 7);
+
         const checkout = new Model.Checkout({
             start: new Date(),
-            due: moment().add(user.limits ? user.limits.days : 7, "days").toDate(),
+            due: moment().add(length, "days").toDate(),
             completed: false,
-            penalty_factor: ctx.body.penalty_factor || 1,
+            penalty_factor: ctx.request.body.penalty_factor || 1,
             book: ctx.params.id,
             person: user.id
         });

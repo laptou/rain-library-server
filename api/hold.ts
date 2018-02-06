@@ -1,9 +1,11 @@
-import * as Rx from "rxjs/Rx";
-import * as Router from "koa-router";
-import { AuthWall } from "../auth";
-import { Database, Model, Person, Hold, Book } from "../data";
-import { Logger, LogSource } from "../util";
 import { Context } from "koa";
+import * as Router from "koa-router";
+import * as Rx from "rxjs/Rx";
+
+import { AuthWall } from "../auth";
+import { Book, Database, Hold, Model, Person } from "../data";
+import { Logger, LogSource } from "../util";
+import * as validate from "./validate";
 
 const logger = new Logger(LogSource.Api);
 export let HoldRouter = new Router();
@@ -34,165 +36,130 @@ const getHolds = (getter: (ctx: Context) => Promise<Hold[]>) =>
     };
 };
 
-HoldRouter.get(
-    "/me",
-    AuthWall("place_hold"),
-    getHolds(ctx => Database.getHoldsForPerson(ctx.state.user)));
-
-HoldRouter.get(
-    "/me/pending",
-    AuthWall("place_hold"),
-    getHolds(ctx => Database.getPendingHoldsForPerson(ctx.state.user)));
-
-HoldRouter.post("/me", AuthWall("place_hold"), async ctx =>
-{
-    if (await Rx.Observable
-        .from(await Database.getCurrentCheckoutsForUser(ctx.state.user.id))
-        .findIndex(c => (c.book as Book).isbn === ctx.request.body.isbn)
-        .toPromise() !== -1)
+HoldRouter
+    .param("isbn", validate.Isbn)
+    .get("/me", AuthWall("place_hold"), getHolds(ctx => Database.getHoldsForPerson(ctx.state.user)))
+    .get("/me/pending", AuthWall("place_hold"), getHolds(ctx => Database.getPendingHoldsForPerson(ctx.state.user)))
+    .post("/me/:isbn", AuthWall("place_hold"), async ctx =>
     {
-        // if the user has already checked this book out, deny access
-        ctx.status = 400;
-        return;
-    }
-
-    if (await Database.getPendingHoldForPerson(ctx.state.user.id, ctx.request.body.isbn))
-    {
-        // if the user already has a hold on this book, deny access
-        ctx.status = 400;
-        return;
-    }
-
-    await new Model.Hold({
-        date: new Date(),
-        person: ctx.state.user.id,
-        isbn: ctx.request.body.isbn,
-        completed: false
-    }).save();
-
-    ctx.status = 200;
-});
-
-HoldRouter.get(
-    "/person/:id",
-    AuthWall("modify_hold"),
-    getHolds(ctx => Database.getHoldsForPerson(ctx.params.id)));
-
-HoldRouter.get(
-    "/person/:id/pending",
-    AuthWall("modify_hold"),
-    getHolds(ctx => Database.getPendingHoldsForPerson(ctx.params.id)));
-
-HoldRouter.get("/:id", AuthWall("place_hold"), async ctx =>
-{
-    const hold = await Database.getHoldById(ctx.params.id);
-
-    if (hold)
-    {
-        const holder = hold.person as Person;
-        const user: Person = ctx.state.user;
-
-        if (user.permissions.indexOf("modify_hold") === -1 &&
-            holder.id !== user.id)
+        if (await Rx.Observable
+            .from(await Database.getCurrentCheckoutsForUser(ctx.state.user.id))
+            .findIndex(c => (c.book as Book).isbn === ctx.params.isbn)
+            .toPromise() !== -1)
         {
-            ctx.status = 401;
-            return;
-        }
-
-        ctx.body = hold;
-    }
-    else
-    {
-        ctx.status = 404;
-    }
-});
-
-HoldRouter.delete("/me/:isbn", AuthWall("place_hold"), async ctx =>
-{
-    const hold =
-        (await Database.getPendingHoldsForPerson(ctx.state.user.id))
-            .filter(h =>  h.isbn === ctx.params.isbn);
-
-    if (hold[0])
-    {
-        await hold[0].remove();
-        ctx.status = 200;
-    }
-    else
-    {
-        ctx.status = 404;
-    }
-});
-
-HoldRouter.delete("/:id", AuthWall("modify_hold"), async ctx =>
-{
-    const hold = await Database.getHoldById(ctx.params.id);
-
-    if (hold)
-    {
-        const holder = hold.person as Person;
-        const user: Person = ctx.state.user;
-
-        if (user.permissions.indexOf("modify_hold") === -1 &&
-            holder.id !== user.id)
-        {
-            // if the user doesn't have permission to delete this hold
-            // then pretend it doesn't exist
-            ctx.status = 404;
-            return;
-        }
-
-        await hold.remove();
-    }
-    else
-    {
-        ctx.status = 404;
-        return;
-    }
-});
-
-HoldRouter.post("/:id", AuthWall("modify_hold"), async ctx =>
-{
-    const hold = await Database.getHoldById(ctx.params.id);
-
-    if (hold)
-    {
-
-        // make sure the user didn't submit any properties that should
-        // be resistant to change
-        for (const key in ctx.body)
-        {
-            // right now, completed is the only property
-            // that can be changed after the hold is created
-            if (["completed"].indexOf(key) === -1)
-            {
-                ctx.status = 400;
-                return;
-            }
-        }
-
-        if ("completed" in ctx.body && typeof ctx.body.completed !== "boolean")
-        {
+            // if the user has already checked this book out, deny access
             ctx.status = 400;
             return;
         }
 
-        Object.assign(hold, ctx.body);
+        if (await Database.getPendingHoldForPerson(ctx.state.user.id, ctx.params.isbn))
+        {
+            // if the user already has a hold on this book, deny access
+            ctx.status = 400;
+            return;
+        }
 
-        await hold.save();
-    }
-    else
+        await new Model.Hold({
+            date: new Date(),
+            person: ctx.state.user.id,
+            isbn: ctx.request.body.isbn,
+            completed: false
+        }).save();
+
+        ctx.status = 200;
+    })
+    .delete("/me/:isbn", AuthWall("place_hold"), async ctx =>
     {
-        ctx.status = 404;
-    }
-});
+        const hold = await Database.getPendingHoldForPerson(ctx.state.user.id, ctx.params.isbn);
 
-HoldRouter.get("/book/:isbn", AuthWall("modify_hold"), async ctx =>
-{
-    ctx.body = await Database.getHoldsForBook(ctx.params.isbn);
-});
+        if (hold[0])
+        {
+            await hold[0].remove();
+            ctx.status = 200;
+        }
+        else
+        {
+            ctx.status = 404;
+        }
+    });
 
-HoldRouter.get("/book/:isbn/count", AuthWall("place_hold"), async ctx =>
-{
-    ctx.body = (await Database.getHoldsForBook(ctx.params.isbn)).length;
-});
+HoldRouter
+    .param("id", validate.Id)
+    .get("/person/:id", AuthWall("modify_hold"), getHolds(ctx => Database.getHoldsForPerson(ctx.params.id)))
+    .get("/person/:id/pending",
+    AuthWall("modify_hold"),
+    getHolds(ctx => Database.getPendingHoldsForPerson(ctx.params.id)));
+
+HoldRouter
+    .param("id", validate.Id)
+    .get("/:id", AuthWall("place_hold"), async ctx =>
+    {
+        const hold = await Database.getHoldById(ctx.params.id);
+
+        if (hold)
+        {
+            const holder = hold.person as Person;
+            const user: Person = ctx.state.user;
+
+            if (user.permissions.indexOf("modify_hold") === -1 &&
+                holder.id !== user.id)
+            {
+                ctx.status = 401;
+                return;
+            }
+
+            ctx.body = hold;
+        }
+        else
+        {
+            ctx.status = 404;
+        }
+    })
+    .post("/:id", AuthWall("modify_hold"), async ctx =>
+    {
+        const hold = await Database.getHoldById(ctx.params.id);
+
+        if (hold)
+        {
+            if (!validate.Object(ctx.request.body, { completed: "boolean" }))
+            {
+                ctx.status = 400;
+                return;
+            }
+
+            Object.assign(hold, ctx.request.body);
+
+            await hold.save();
+        }
+        else
+        {
+            ctx.status = 404;
+        }
+    })
+    .delete("/:id", AuthWall("modify_hold"), async ctx =>
+    {
+        const hold = await Database.getHoldById(ctx.params.id);
+
+        if (hold)
+        {
+            const holder = hold.person as Person;
+
+            await hold.remove();
+        }
+        else
+        {
+            ctx.status = 404;
+            return;
+        }
+    });
+
+HoldRouter
+    .param("isbn", validate.Isbn)
+    .get("/book/:isbn", AuthWall("modify_hold"), async ctx =>
+    {
+        ctx.body = await Database.getHoldsForBook(ctx.params.isbn);
+    })
+    .get("/book/:isbn/count", AuthWall("place_hold"), async ctx =>
+    {
+        ctx.body = (await Database.getHoldsForBook(ctx.params.isbn)).length;
+    });
