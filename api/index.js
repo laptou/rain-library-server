@@ -5,6 +5,7 @@ const util_1 = require("../util");
 const book_1 = require("./book");
 const hold_1 = require("./hold");
 const person_1 = require("./person");
+const settings_1 = require("./settings");
 exports.ApiRouter = new Router();
 const logger = new util_1.Logger(util_1.LogSource.Api);
 exports.ApiRouter.use(async (ctx, next) => {
@@ -19,4 +20,5 @@ exports.ApiRouter.use(async (ctx, next) => {
 exports.ApiRouter.use("/book", book_1.BookRouter.routes());
 exports.ApiRouter.use("/person", person_1.PersonRouter.routes());
 exports.ApiRouter.use("/hold", hold_1.HoldRouter.routes());
+exports.ApiRouter.use("/settings", settings_1.SettingsRouter.routes());
 //# sourceMappingURL=index.js.map

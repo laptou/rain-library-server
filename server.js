@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = require("fs");
+const http2 = require("http2");
 const Koa = require("koa");
 const KoaBodyParser = require("koa-bodyparser");
 const KoaJson = require("koa-json");
@@ -29,12 +30,12 @@ if (apiOnly)
     logger.info("Running in API Only mode.");
 if (dev)
     logger.info("Running in development mode.");
-const server = new Koa();
+const app = new Koa();
 const router = new KoaRouter();
-server.keys = [
+app.keys = [
     "<\xd2Oa\x9f\xfa\xe2\xc6\xdad \xcf\x18=\xf5h.\xff\xb2\xd3\x02M.vI\x9eN\xe7'\xa6\xc8I\xd62J\xbe"
 ];
-server.use(async (ctx, next) => {
+app.use(async (ctx, next) => {
     try {
         await next();
     }
@@ -44,14 +45,14 @@ server.use(async (ctx, next) => {
         ctx.app.emit("error", err, ctx);
     }
 });
-server.use(KoaBodyParser());
-server.use(KoaJson());
-server.use(KoaSession({}, server));
-server.use(KoaPassport.initialize());
-server.use(KoaPassport.session());
+app.use(KoaBodyParser());
+app.use(KoaJson());
+app.use(KoaSession({}, app));
+app.use(KoaPassport.initialize());
+app.use(KoaPassport.session());
 router.use("/api", api_1.ApiRouter.routes());
 router.use("/auth", auth_1.AuthRouter.routes());
-server.use(async (ctx, next) => {
+app.use(async (ctx, next) => {
     logger.log(`${Moment().format("YYYY.MM.DD hh:mm:ssaZ")} - ${ctx.req.method} ${ctx.req.url}`);
     await next();
 });
@@ -108,12 +109,22 @@ if (!apiOnly) {
                 await mfs.readFile(path.join(config.output, "index.html"), "utf8", (err, result) => (err ? reject(err) : resolve(result)));
             });
         });
-        server.use(middleware);
+        app.use(middleware);
         webpackLog.info("Attached webpack middleware.");
     }
 }
-server.use(router.routes());
-server.use(KoaStatic(config.output));
-server.listen(process.env.PORT || 8000);
+app.use(router.routes());
+app.use(KoaStatic(config.output));
+if (dev) {
+    const server = http2
+        .createSecureServer({
+        key: fs.readFileSync("key/server.key"),
+        cert: fs.readFileSync("key/server.crt")
+    }, app.callback())
+        .listen(process.env.PORT || 8000);
+}
+else {
+    app.listen(process.env.PORT || 8000);
+}
 logger.info("Server is up and running.");
 //# sourceMappingURL=server.js.map

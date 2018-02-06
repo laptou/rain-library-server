@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as http2 from "http2";
 import * as Koa from "koa";
 import * as KoaBodyParser from "koa-bodyparser";
 import * as KoaJson from "koa-json";
@@ -33,14 +34,14 @@ const apiOnly = process.argv.indexOf("-api-only") !== -1;
 if (apiOnly) logger.info("Running in API Only mode.");
 if (dev) logger.info("Running in development mode.");
 
-const server = new Koa();
+const app = new Koa();
 const router = new KoaRouter();
 
-server.keys = [
+app.keys = [
     "<\xd2Oa\x9f\xfa\xe2\xc6\xdad \xcf\x18=\xf5h.\xff\xb2\xd3\x02M.vI\x9eN\xe7'\xa6\xc8I\xd62J\xbe"
 ];
 
-server.use(async (ctx, next) => {
+app.use(async (ctx, next) => {
     try {
         await next();
     } catch (err) {
@@ -50,18 +51,18 @@ server.use(async (ctx, next) => {
     }
 });
 
-server.use(KoaBodyParser());
-server.use(KoaJson());
+app.use(KoaBodyParser());
+app.use(KoaJson());
 
-server.use(KoaSession({}, server));
+app.use(KoaSession({}, app));
 
-server.use(KoaPassport.initialize());
-server.use(KoaPassport.session());
+app.use(KoaPassport.initialize());
+app.use(KoaPassport.session());
 
 router.use("/api", ApiRouter.routes());
 router.use("/auth", AuthRouter.routes());
 
-server.use(async (ctx, next) => {
+app.use(async (ctx, next) => {
     logger.log(
         `${Moment().format("YYYY.MM.DD hh:mm:ssaZ")} - ${ctx.req.method} ${
             ctx.req.url
@@ -138,14 +139,27 @@ if (!apiOnly) {
             });
         });
 
-        server.use(middleware);
+        app.use(middleware);
 
         webpackLog.info("Attached webpack middleware.");
     }
 }
 
-server.use(router.routes());
-server.use(KoaStatic(config.output));
+app.use(router.routes());
+app.use(KoaStatic(config.output));
 
-server.listen(process.env.PORT || 8000);
+if (dev) {
+    const server = http2
+        .createSecureServer(
+            {
+                key: fs.readFileSync("key/server.key"),
+                cert: fs.readFileSync("key/server.crt")
+            },
+            app.callback() as any
+        )
+        .listen(process.env.PORT || 8000);
+} else {
+    app.listen(process.env.PORT || 8000);
+}
+
 logger.info("Server is up and running.");

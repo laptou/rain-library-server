@@ -13,14 +13,17 @@ const logger = new Logger(LogSource.Database);
 
 mongoose
     .connect(config.db, { useMongoClient: true })
-    .catch(err => {
+    .catch(err =>
+    {
         logger.error("Database connection failed: " + err);
-        if (dev) {
+        if (dev)
+        {
             mongoose.connect("mongodb://localhost/library");
             logger.info("Attempting to connect to localhost");
         }
     })
-    .then(() => {
+    .then(() =>
+    {
         logger.info("Successfully connected to database.");
     });
 
@@ -39,7 +42,8 @@ const schema = {
             toObject: { virtuals: true },
             toJSON: {
                 virtuals: true,
-                transform: (doc: Person, ret: Person, options: any) => {
+                transform: (doc: Person, ret: Person, options: any) =>
+                {
                     delete ret.password;
                     delete ret.__v;
                 }
@@ -126,14 +130,17 @@ export declare type Permission =
     | "user"
     | "test";
 
-export declare interface Person extends mongoose.Document {
+export declare interface Person extends mongoose.Document
+{
     username: string | null;
     name: { first: string; last: string };
+    limits: { books: number; days: number; } | null;
     permissions: Permission[];
     password: string;
 }
 
-export declare interface Book extends mongoose.Document {
+export declare interface Book extends mongoose.Document
+{
     name: string;
     edition: { version: number; publisher: string };
     authors: Person[] | string[];
@@ -143,7 +150,8 @@ export declare interface Book extends mongoose.Document {
     isbn: string;
 }
 
-export interface Checkout extends mongoose.Document {
+export interface Checkout extends mongoose.Document
+{
     start: Date;
     due: Date | null;
     completed: boolean;
@@ -152,14 +160,16 @@ export interface Checkout extends mongoose.Document {
     person: string | Person;
 }
 
-export interface Hold extends mongoose.Document {
+export interface Hold extends mongoose.Document
+{
     date: Date;
     completed: boolean;
     isbn: string;
     person: string | Person;
 }
 
-export interface Fine extends mongoose.Document {
+export interface Fine extends mongoose.Document
+{
     date: Date;
     completed: boolean;
     amount: number;
@@ -167,20 +177,24 @@ export interface Fine extends mongoose.Document {
     person: string | Person;
 }
 
-export interface QueryOptions {
+export interface QueryOptions
+{
     populate?: boolean;
     limit?: number;
 }
 
-export class Database {
+export class Database
+{
     static async getBookById(
         id: string,
         options?: QueryOptions
-    ): Promise<Book> {
+    ): Promise<Book>
+    {
         return await Database.getBooks(Model.Book.findById(id), options);
     }
 
-    static async getBooksByAuthor(person: string, options?: QueryOptions) {
+    static async getBooksByAuthor(person: string, options?: QueryOptions)
+    {
         return await Database.getBooks(
             Model.Book.find({ authors: person }),
             options
@@ -190,14 +204,16 @@ export class Database {
     static async getBookByIsbn(
         isbn: string,
         options?: QueryOptions
-    ): Promise<Book> {
+    ): Promise<Book>
+    {
         return await Database.getBooks(Model.Book.findOne({ isbn }), options);
     }
 
     static async getBooksByTitle(
         title: string,
         options?: QueryOptions
-    ): Promise<Book[]> {
+    ): Promise<Book[]>
+    {
         return await Database.getBooks(
             Model.Book.find({ name: title }).collation({
                 locale: "en",
@@ -210,7 +226,8 @@ export class Database {
     static async searchBooks(
         search: string,
         options?: QueryOptions
-    ): Promise<Book[]> {
+    ): Promise<Book[]>
+    {
         return await Database.getBooks(
             Model.Book.find({ $text: { $search: search } }),
             options
@@ -220,7 +237,8 @@ export class Database {
     static async searchPeople(
         search: string,
         options?: QueryOptions
-    ): Promise<Person[]> {
+    ): Promise<Person[]>
+    {
         return (await Model.Person.aggregate([
             {
                 $addFields: {
@@ -234,7 +252,8 @@ export class Database {
     static async searchBooksByTitle(
         search: string,
         options?: QueryOptions
-    ): Promise<Book[]> {
+    ): Promise<Book[]>
+    {
         return await Database.getBooks(
             Model.Book.find({ name: { $regex: `^${search}`, $options: "i" } }),
             options
@@ -247,8 +266,10 @@ export class Database {
         userId: string,
         isbn?: string,
         options?: QueryOptions
-    ): Promise<Checkout[]> {
-        if (isbn) {
+    ): Promise<Checkout[]>
+    {
+        if (isbn)
+        {
             const book = await Model.Book.findOne({ isbn });
             return await Database.getCheckouts(
                 Model.Checkout.find({
@@ -272,7 +293,8 @@ export class Database {
     static async getCheckoutsForIsbn(
         isbn: string,
         options?: QueryOptions
-    ): Promise<Checkout[]> {
+    ): Promise<Checkout[]>
+    {
         const book = await Model.Book.findOne({ isbn });
         return await Database.getCheckouts(
             Model.Checkout.find({
@@ -286,13 +308,15 @@ export class Database {
 
     //#region people
 
-    static async getPersonById(id: string): Promise<Person> {
+    static async getPersonById(id: string): Promise<Person>
+    {
         const query = Model.Person.findById(id);
 
         return await query.exec();
     }
 
-    static async getPersonByUsername(name: string): Promise<Person> {
+    static async getPersonByUsername(name: string): Promise<Person>
+    {
         const query = Model.Person.findOne({ username: name }, null, {
             collation: { locale: "en", strength: 1 }
         });
@@ -307,7 +331,8 @@ export class Database {
     static async getHoldById(
         id: string,
         options?: QueryOptions
-    ): Promise<Hold> {
+    ): Promise<Hold>
+    {
         return await Database.getHolds(
             Model.Hold.findById(id).sort({ date: 1 }),
             options
@@ -317,7 +342,8 @@ export class Database {
     static async getHoldsForBook(
         isbn: string,
         options?: QueryOptions
-    ): Promise<Hold[]> {
+    ): Promise<Hold[]>
+    {
         return await Database.getHolds(
             Model.Hold.find({ isbn }).sort({ date: 1 }),
             options
@@ -327,7 +353,8 @@ export class Database {
     static async getPendingHoldsForBook(
         isbn: string,
         options?: QueryOptions
-    ): Promise<Hold[]> {
+    ): Promise<Hold[]>
+    {
         return await Database.getHolds(
             Model.Hold.find({ isbn, completed: false }).sort({ date: 1 }),
             options
@@ -337,7 +364,8 @@ export class Database {
     static async getHoldsForPerson(
         person: string | Person,
         options?: QueryOptions
-    ): Promise<Hold[]> {
+    ): Promise<Hold[]>
+    {
         return await Database.getHolds(
             Model.Hold.find({
                 person: typeof person === "string" ? person : person.id
@@ -349,7 +377,8 @@ export class Database {
     static async getPendingHoldsForPerson(
         person: string | Person,
         options?: QueryOptions
-    ): Promise<Hold[]> {
+    ): Promise<Hold[]>
+    {
         return await Database.getHolds(
             Model.Hold.find({
                 person: typeof person === "string" ? person : person.id,
@@ -363,7 +392,8 @@ export class Database {
         person: string | Person,
         isbn: string,
         options?: QueryOptions
-    ): Promise<Hold> {
+    ): Promise<Hold>
+    {
         return await Database.getHolds(
             Model.Hold.findOne({
                 person: typeof person === "string" ? person : person.id,
@@ -387,7 +417,8 @@ export class Database {
     private static async getHolds(
         query: mongoose.DocumentQuery<Hold[] | Hold, Hold>,
         options
-    ) {
+    )
+    {
         // populate by default
         if (!options || (options && options.populate))
             query = query.populate("person");
@@ -408,7 +439,8 @@ export class Database {
     private static async getBooks(
         query: mongoose.DocumentQuery<Book[] | Book, Book>,
         options
-    ) {
+    )
+    {
         // populate by default
         if (!options || (options && options.populate))
             query = query.populate("authors");
@@ -429,7 +461,8 @@ export class Database {
     private static async getPeople(
         query: mongoose.DocumentQuery<Person[] | Person, Person>,
         options
-    ) {
+    )
+    {
         if (options && options.limit) query = query.limit(options.limit);
 
         return await query.exec();
@@ -446,7 +479,8 @@ export class Database {
     private static async getCheckouts(
         query: mongoose.DocumentQuery<Checkout[] | Checkout, Checkout>,
         options
-    ) {
+    )
+    {
         if (!options || (options && options.populate))
             query = query.populate({
                 path: "book",

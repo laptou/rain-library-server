@@ -1,9 +1,11 @@
 import * as Router from "koa-router";
+import * as moment from "moment";
 import * as Rx from "rxjs";
+
 import { AuthWall } from "../auth";
-import { Book, Database, Model, Hold } from "../data";
+import { Database, Hold, Model } from "../data";
 import { Logger, LogSource } from "../util";
-import { Linq } from "../util/linq";
+import * as validate from "./validate";
 
 enum BookStatus
 {
@@ -17,16 +19,9 @@ enum BookStatus
 const logger = new Logger(LogSource.Api);
 
 export let BookRouter = new Router();
-const isbnValidator = async (isbn, ctx, next) =>
-{
-    if (isbn.match(/^(\d{10}|\d{13})$/))
-    {
-        await next();
-    }
-};
 
 BookRouter
-    .param("isbn", isbnValidator)
+    .param("isbn", validate.Isbn)
     .get("/:isbn", async (ctx, next) =>
     {
         ctx.response.body = await Database.getBookByIsbn(ctx.params.isbn);
@@ -37,6 +32,51 @@ BookRouter
         return new Promise((resolve, reject) =>
         {
             model.save(null, (err) =>
+            {
+                if (err)
+                {
+                    ctx.status = 500;
+                }
+
+                ctx.status = 200;
+
+                resolve();
+            });
+        });
+    });
+
+BookRouter
+    .param("id", validate.Id)
+    .post("/:id/check_out", AuthWall("check_out"), async ctx =>
+    {
+        const user = await Database.getPersonById(ctx.body.user_id);
+        if (!user)
+        {
+            ctx.status = 404;
+            ctx.message = "User not found.";
+            return;
+        }
+
+        const book = await Database.getBookById(ctx.params.id);
+        if (!book)
+        {
+            ctx.status = 404;
+            ctx.message = "Book not found.";
+            return;
+        }
+
+        const checkout = new Model.Checkout({
+            start: new Date(),
+            due: moment().add(user.limits ? user.limits.days : 7, "days").toDate(),
+            completed: false,
+            penalty_factor: ctx.body.penalty_factor || 1,
+            book: ctx.params.id,
+            person: user.id
+        });
+
+        return new Promise((resolve, reject) =>
+        {
+            checkout.save(null, (err) =>
             {
                 if (err)
                 {
@@ -63,7 +103,7 @@ BookRouter
         if (checkouts.length > 0)
         {
             const checkout = checkouts.sort((a, b) => a.start < b.start ? -1 : 1)[0];
-            
+
             if (checkout.due < new Date())
                 ctx.response.body = { status: BookStatus.Overdue, checkout };
             else
