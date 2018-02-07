@@ -11,10 +11,10 @@ printjson(
         validator: {
             $jsonSchema: {
                 bsonType: "object",
-                required: ["date", "book", "person", "completed", "amount"],
+                required: ["date", "copy", "person", "completed", "amount"],
                 properties: {
                     date: { bsonType: "date" },
-                    book: { bsonType: "objectId" },
+                    copy: { bsonType: "objectId" },
                     person: { bsonType: "objectId" },
                     completed: { bsonType: "bool" },
                     amount: { bsonType: "decimal" }
@@ -50,8 +50,8 @@ printjson(
                 bsonType: "object",
                 required: [
                     "start",
-                    "penalty_factor",
-                    "book",
+                    "penalty",
+                    "copy",
                     "person",
                     "due",
                     "completed"
@@ -61,8 +61,8 @@ printjson(
                     due: { bsonType: "date" },
                     end: { bsonType: "date" },
                     completed: { bsonType: "bool" },
-                    penalty_factor: { bsonType: "double" },
-                    book: { bsonType: "objectId" },
+                    penalty: { bsonType: "double" },
+                    copy: { bsonType: "objectId" },
                     person: { bsonType: "objectId" }
                 }
             }

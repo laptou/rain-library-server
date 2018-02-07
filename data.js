@@ -50,8 +50,8 @@ const schema = {
         start: Date,
         due: Date,
         completed: Boolean,
-        penalty_factor: Number,
-        bookId: { type: mongoose.Schema.Types.ObjectId, alias: "book" },
+        penalty: Number,
+        copy: mongoose.Schema.Types.ObjectId,
         person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
     }, { toObject: { virtuals: true }, toJSON: { virtuals: true } }),
     Hold: new mongoose.Schema({
@@ -63,25 +63,27 @@ const schema = {
     Fine: new mongoose.Schema({
         date: Date,
         completed: Boolean,
-        bookId: { type: mongoose.Schema.Types.ObjectId, alias: "book" },
+        copy: mongoose.Schema.Types.ObjectId,
         person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" },
         amount: mongoose.Schema.Types.Decimal128
     }, { toObject: { virtuals: true }, toJSON: { virtuals: true } })
 };
 schema.Checkout.virtual("book", {
     ref: "Book",
-    localField: "book",
+    localField: "copy",
     foreignField: "copies"
 });
 schema.Fine.virtual("book", {
     ref: "Book",
-    localField: "book",
-    foreignField: "copies"
+    localField: "copy",
+    foreignField: "copies",
+    justOne: true
 });
 schema.Hold.virtual("book", {
     ref: "Book",
     localField: "isbn",
-    foreignField: "isbn"
+    foreignField: "isbn",
+    justOne: true
 });
 exports.Model = {
     Person: mongoose.model("Person", schema.Person),
@@ -92,6 +94,9 @@ exports.Model = {
 class Database {
     static async getBookById(id, options) {
         return await Database.getBooks(exports.Model.Book.findById(id), options);
+    }
+    static async getBookByCopyId(copyId, options) {
+        return await Database.getBooks(exports.Model.Book.findOne({ copies: copyId }), options);
     }
     static async getBooksByAuthor(person, options) {
         return await Database.getBooks(exports.Model.Book.find({ authors: person }), options);

@@ -38,6 +38,9 @@ const getHolds = (getter: (ctx: Context) => Promise<Hold[]>) =>
 
 HoldRouter
     .param("isbn", validate.Isbn)
+    .param("id", validate.Id);
+
+HoldRouter
     .get("/me", AuthWall("place_hold"), getHolds(ctx => Database.getHoldsForPerson(ctx.state.user)))
     .get("/me/pending", AuthWall("place_hold"), getHolds(ctx => Database.getPendingHoldsForPerson(ctx.state.user)))
     .post("/me/:isbn", AuthWall("place_hold"), async ctx =>
@@ -84,14 +87,12 @@ HoldRouter
     });
 
 HoldRouter
-    .param("id", validate.Id)
     .get("/person/:id", AuthWall("modify_hold"), getHolds(ctx => Database.getHoldsForPerson(ctx.params.id)))
     .get("/person/:id/pending",
     AuthWall("modify_hold"),
     getHolds(ctx => Database.getPendingHoldsForPerson(ctx.params.id)));
 
 HoldRouter
-    .param("id", validate.Id)
     .get("/:id", AuthWall("place_hold"), async ctx =>
     {
         const hold = await Database.getHoldById(ctx.params.id);
@@ -154,7 +155,6 @@ HoldRouter
     });
 
 HoldRouter
-    .param("isbn", validate.Isbn)
     .get("/book/:isbn", AuthWall("modify_hold"), async ctx =>
     {
         ctx.body = await Database.getHoldsForBook(ctx.params.isbn);

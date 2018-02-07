@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Router = require("koa-router");
+const moment = require("moment");
 const Rx = require("rxjs");
 const auth_1 = require("../auth");
 const data_1 = require("../data");
 const util_1 = require("../util");
+const validate = require("./validate");
 var BookStatus;
 (function (BookStatus) {
     BookStatus["None"] = "none";
@@ -15,17 +17,25 @@ var BookStatus;
 })(BookStatus || (BookStatus = {}));
 const logger = new util_1.Logger(util_1.LogSource.Api);
 exports.BookRouter = new Router();
-const isbnValidator = async (isbn, ctx, next) => {
-    if (isbn.match(/^(\d{10}|\d{13})$/)) {
-        await next();
-    }
-};
+exports.BookRouter.param("isbn", validate.Isbn);
+exports.BookRouter.param("id", validate.Id);
 exports.BookRouter
-    .param("isbn", isbnValidator)
     .get("/:isbn", async (ctx, next) => {
     ctx.response.body = await data_1.Database.getBookByIsbn(ctx.params.isbn);
 })
     .post("/:isbn", auth_1.AuthWall("modify_book"), ctx => {
+    if (!validate.Object(ctx.body, {
+        name: "string",
+        edition: { version: "number", publisher: "string" },
+        authors: ["string"],
+        copies: ["string"],
+        genre: ["string"],
+        rating: "number",
+        isbn: "string",
+    })) {
+        ctx.status = 400;
+        return;
+    }
     const model = new data_1.Model.Book(ctx.body);
     return new Promise((resolve, reject) => {
         model.save(null, (err) => {
@@ -38,7 +48,49 @@ exports.BookRouter
     });
 });
 exports.BookRouter
-    .param("isbn", isbnValidator)
+    .post("/:id/check_out", auth_1.AuthWall("check_out"), async (ctx) => {
+    if (!validate.Object(ctx.request.body, {
+        user: "string",
+        length: "number?",
+        penalty: "number?"
+    })) {
+        ctx.status = 400;
+        return;
+    }
+    const user = await data_1.Database.getPersonById(ctx.request.body.user);
+    if (!user) {
+        ctx.status = 404;
+        ctx.message = "User not found.";
+        return;
+    }
+    const book = await data_1.Database.getBookByCopyId(ctx.params.id);
+    if (!book) {
+        ctx.status = 404;
+        ctx.message = "Book not found.";
+        return;
+    }
+    let length = ctx.request.body.length ? parseFloat(ctx.request.body.length) : Number.POSITIVE_INFINITY;
+    length = Math.min(length, user.limits && user.limits.days ? user.limits.days : 7);
+    const checkout = new data_1.Model.Checkout({
+        start: new Date(),
+        due: moment().add(length, "days").toDate(),
+        completed: false,
+        penalty: ctx.request.body.penalty || 1,
+        copy: ctx.params.id,
+        person: user.id
+    });
+    return new Promise((resolve, reject) => {
+        checkout.save(async (err) => {
+            if (err) {
+                ctx.status = 500;
+            }
+            ctx.status = 200;
+            ctx.body = checkout;
+            resolve();
+        });
+    });
+});
+exports.BookRouter
     .get("/status/checked_out", auth_1.AuthWall(), async (ctx) => {
     ctx.response.body = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id);
 })

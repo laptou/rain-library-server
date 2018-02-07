@@ -17,7 +17,8 @@ import { Logger, LogSource } from "./util";
 
 const logger = new Logger(LogSource.Server);
 
-process.on("uncaughtException", err => {
+process.on("uncaughtException", err =>
+{
     logger.error("Fatal error, process exiting");
     logger.error(err);
 
@@ -30,8 +31,10 @@ const dev =
     process.env.NODE_ENV === "development" &&
     process.argv.indexOf("-production") === -1;
 const apiOnly = process.argv.indexOf("-api-only") !== -1;
+const noSsl = process.argv.indexOf("-no-ssl") !== -1;
 
 if (apiOnly) logger.info("Running in API Only mode.");
+if (noSsl) logger.info("Not running in SSL mode.");
 if (dev) logger.info("Running in development mode.");
 
 const app = new Koa();
@@ -41,10 +44,13 @@ app.keys = [
     "<\xd2Oa\x9f\xfa\xe2\xc6\xdad \xcf\x18=\xf5h.\xff\xb2\xd3\x02M.vI\x9eN\xe7'\xa6\xc8I\xd62J\xbe"
 ];
 
-app.use(async (ctx, next) => {
-    try {
+app.use(async (ctx, next) =>
+{
+    try
+    {
         await next();
-    } catch (err) {
+    } catch (err)
+    {
         ctx.status = err.status || 500;
         ctx.body = err.message;
         ctx.app.emit("error", err, ctx);
@@ -62,10 +68,11 @@ app.use(KoaPassport.session());
 router.use("/api", ApiRouter.routes());
 router.use("/auth", AuthRouter.routes());
 
-app.use(async (ctx, next) => {
+app.use(async (ctx, next) =>
+{
     logger.log(
         `${Moment().format("YYYY.MM.DD hh:mm:ssaZ")} - ${ctx.req.method} ${
-            ctx.req.url
+        ctx.req.url
         }`
     );
     await next();
@@ -73,26 +80,31 @@ app.use(async (ctx, next) => {
 
 const config = require("../client/config");
 
-logger.log("Config: " + JSON.stringify(config));
-
-if (!apiOnly) {
+if (!apiOnly)
+{
     logger.log("Not running in API Only mode.");
 
-    if (!dev) {
+    if (!dev)
+    {
         logger.log("Configuring catch-all router.");
 
-        router.get("*", async ctx => {
+        router.get("*", async ctx =>
+        {
             const target = path.join(config.output, ctx.path);
             const f = file => fs.existsSync(file) && fs.statSync(file).isFile();
 
-            if (ctx.path) {
-                if (f(target + ".gz")) {
+            if (ctx.path)
+            {
+                if (f(target + ".gz"))
+                {
                     await KoaSendFile(ctx, target + ".gz");
                     ctx.set("Content-Encoding", "gzip");
                     ctx.type = path.extname(target);
-                } else if (f(target)) {
+                } else if (f(target))
+                {
                     await KoaSendFile(ctx, target);
-                } else {
+                } else
+                {
                     await KoaSendFile(
                         ctx,
                         path.join(config.output, "index.html")
@@ -100,7 +112,8 @@ if (!apiOnly) {
                 }
             }
         });
-    } else {
+    } else
+    {
         const KoaWebpack = require("koa-webpack");
         const webpackLog = new Logger(LogSource.Webpack);
         const compiler = require("webpack")(
@@ -129,8 +142,10 @@ if (!apiOnly) {
 
         const mfs = middleware.dev.fileSystem;
 
-        router.get("*", async ctx => {
-            ctx.body = await new Promise(async (resolve, reject) => {
+        router.get("*", async ctx =>
+        {
+            ctx.body = await new Promise(async (resolve, reject) =>
+            {
                 await mfs.readFile(
                     path.join(config.output, "index.html"),
                     "utf8",
@@ -148,17 +163,17 @@ if (!apiOnly) {
 app.use(router.routes());
 app.use(KoaStatic(config.output));
 
-if (dev) {
+if (dev && !noSsl)
+{
     const server = http2
         .createSecureServer(
-            {
-                key: fs.readFileSync("key/server.key"),
-                cert: fs.readFileSync("key/server.crt")
-            },
-            app.callback() as any
-        )
+        {
+            key: fs.readFileSync("key/server.key"),
+            cert: fs.readFileSync("key/server.crt")
+        }, app.callback() as any)
         .listen(process.env.PORT || 8000);
-} else {
+} else
+{
     app.listen(process.env.PORT || 8000);
 }
 

@@ -20,8 +20,10 @@ const logger = new Logger(LogSource.Api);
 
 export let BookRouter = new Router();
 
+BookRouter.param("isbn", validate.Isbn);
+BookRouter.param("id", validate.Id);
+
 BookRouter
-    .param("isbn", validate.Isbn)
     .get("/:isbn", async (ctx, next) =>
     {
         ctx.response.body = await Database.getBookByIsbn(ctx.params.isbn);
@@ -60,13 +62,12 @@ BookRouter
     });
 
 BookRouter
-    .param("id", validate.Id)
     .post("/:id/check_out", AuthWall("check_out"), async ctx =>
     {
         if (!validate.Object(ctx.request.body, {
             user: "string",
             length: "number?",
-            penalty_factor: "string?"
+            penalty: "number?"
         }))
         {
             ctx.status = 400;
@@ -81,7 +82,7 @@ BookRouter
             return;
         }
 
-        const book = await Database.getBookById(ctx.params.id);
+        const book = await Database.getBookByCopyId(ctx.params.id);
         if (!book)
         {
             ctx.status = 404;
@@ -89,20 +90,21 @@ BookRouter
             return;
         }
 
-        const length = Math.min(parseFloat(ctx.body.length), user.limits ? user.limits.days : 7);
+        let length = ctx.request.body.length ? parseFloat(ctx.request.body.length) : Number.POSITIVE_INFINITY;
+        length = Math.min(length, user.limits && user.limits.days ? user.limits.days : 7);
 
         const checkout = new Model.Checkout({
             start: new Date(),
             due: moment().add(length, "days").toDate(),
             completed: false,
-            penalty_factor: ctx.request.body.penalty_factor || 1,
-            book: ctx.params.id,
+            penalty: ctx.request.body.penalty || 1,
+            copy: ctx.params.id,
             person: user.id
         });
 
         return new Promise((resolve, reject) =>
         {
-            checkout.save(null, (err) =>
+            checkout.save(async (err) =>
             {
                 if (err)
                 {
@@ -110,6 +112,7 @@ BookRouter
                 }
 
                 ctx.status = 200;
+                ctx.body = checkout;
 
                 resolve();
             });
@@ -117,7 +120,6 @@ BookRouter
     });
 
 BookRouter
-    .param("isbn", isbnValidator)
     .get("/status/checked_out", AuthWall(), async ctx =>
     {
         ctx.response.body = await Database.getCurrentCheckoutsForUser(ctx.state.user.id);

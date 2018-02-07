@@ -26,8 +26,11 @@ process.on("uncaughtException", err => {
 const dev = process.env.NODE_ENV === "development" &&
     process.argv.indexOf("-production") === -1;
 const apiOnly = process.argv.indexOf("-api-only") !== -1;
+const noSsl = process.argv.indexOf("-no-ssl") !== -1;
 if (apiOnly)
     logger.info("Running in API Only mode.");
+if (noSsl)
+    logger.info("Not running in SSL mode.");
 if (dev)
     logger.info("Running in development mode.");
 const app = new Koa();
@@ -57,7 +60,6 @@ app.use(async (ctx, next) => {
     await next();
 });
 const config = require("../client/config");
-logger.log("Config: " + JSON.stringify(config));
 if (!apiOnly) {
     logger.log("Not running in API Only mode.");
     if (!dev) {
@@ -115,7 +117,7 @@ if (!apiOnly) {
 }
 app.use(router.routes());
 app.use(KoaStatic(config.output));
-if (dev) {
+if (dev && !noSsl) {
     const server = http2
         .createSecureServer({
         key: fs.readFileSync("key/server.key"),

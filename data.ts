@@ -66,8 +66,8 @@ const schema = {
             start: Date,
             due: Date,
             completed: Boolean,
-            penalty_factor: Number,
-            bookId: { type: mongoose.Schema.Types.ObjectId, alias: "book" },
+            penalty: Number,
+            copy: mongoose.Schema.Types.ObjectId,
             person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" }
         },
         { toObject: { virtuals: true }, toJSON: { virtuals: true } }
@@ -85,7 +85,7 @@ const schema = {
         {
             date: Date,
             completed: Boolean,
-            bookId: { type: mongoose.Schema.Types.ObjectId, alias: "book" },
+            copy: mongoose.Schema.Types.ObjectId,
             person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" },
             amount: mongoose.Schema.Types.Decimal128
         },
@@ -95,20 +95,22 @@ const schema = {
 
 schema.Checkout.virtual("book", {
     ref: "Book",
-    localField: "book",
+    localField: "copy",
     foreignField: "copies"
 });
 
 schema.Fine.virtual("book", {
     ref: "Book",
-    localField: "book",
-    foreignField: "copies"
+    localField: "copy",
+    foreignField: "copies",
+    justOne: true
 });
 
 schema.Hold.virtual("book", {
     ref: "Book",
     localField: "isbn",
-    foreignField: "isbn"
+    foreignField: "isbn",
+    justOne: true
 });
 
 export let Model = {
@@ -155,8 +157,9 @@ export interface Checkout extends mongoose.Document
     start: Date;
     due: Date | null;
     completed: boolean;
-    penalty_factor: number;
-    book: string | Book;
+    penalty: number;
+    book: Book;
+    copy: string;
     person: string | Person;
 }
 
@@ -173,7 +176,8 @@ export interface Fine extends mongoose.Document
     date: Date;
     completed: boolean;
     amount: number;
-    book: string | Book;
+    book: Book;
+    copy: string;
     person: string | Person;
 }
 
@@ -191,6 +195,14 @@ export class Database
     ): Promise<Book>
     {
         return await Database.getBooks(Model.Book.findById(id), options);
+    }
+
+    static async getBookByCopyId(
+        copyId: string,
+        options?: QueryOptions
+    ): Promise<Book>
+    {
+        return await Database.getBooks(Model.Book.findOne({ copies: copyId }), options);
     }
 
     static async getBooksByAuthor(person: string, options?: QueryOptions)

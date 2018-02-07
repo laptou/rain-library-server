@@ -3,8 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Router = require("koa-router");
 const auth_1 = require("../auth");
 const data_1 = require("../data");
+const validate = require("./validate");
 exports.PersonRouter = new Router();
-exports.PersonRouter.get("/:id", async (ctx) => {
+exports.PersonRouter.param("id", validate.Id);
+exports.PersonRouter
+    .get("/:id", async (ctx) => {
     try {
         ctx.response.body = await data_1.Database.getPersonById(ctx.params.id);
     }
@@ -12,26 +15,8 @@ exports.PersonRouter.get("/:id", async (ctx) => {
         ctx.response.status = 403;
         ctx.response.body = err.message;
     }
-});
-exports.PersonRouter.get("/username/:un", async (ctx) => {
-    try {
-        ctx.response.body = await data_1.Database.getPersonByUsername(ctx.params.un);
-    }
-    catch (err) {
-        ctx.response.status = 403;
-        ctx.response.body = err.message;
-    }
-});
-exports.PersonRouter.get("/search/:query", async (ctx) => {
-    try {
-        ctx.response.body = await data_1.Database.searchPeople(ctx.params.query);
-    }
-    catch (err) {
-        ctx.response.status = 403;
-        ctx.response.body = err.message;
-    }
-});
-exports.PersonRouter.post("/:id", auth_1.AuthWall("modify_person"), async (ctx) => {
+})
+    .post("/:id", auth_1.AuthWall("modify_person"), async (ctx) => {
     try {
         const person = await data_1.Database.getPersonById(ctx.params.id);
         if (!person) {
@@ -78,6 +63,24 @@ exports.PersonRouter.post("/:id", auth_1.AuthWall("modify_person"), async (ctx) 
     }
     catch (err) {
         ctx.response.status = 500;
+    }
+});
+exports.PersonRouter.get("/u/:un", async (ctx) => {
+    try {
+        ctx.response.body = await data_1.Database.getPersonByUsername(ctx.params.un);
+    }
+    catch (err) {
+        ctx.response.status = 403;
+        ctx.response.body = err.message;
+    }
+});
+exports.PersonRouter.get("/search/:query", async (ctx) => {
+    try {
+        ctx.response.body = await data_1.Database.searchPeople(ctx.params.query);
+    }
+    catch (err) {
+        ctx.response.status = 403;
+        ctx.response.body = err.message;
     }
 });
 //# sourceMappingURL=person.js.map

@@ -16,7 +16,8 @@
                 "node_modules/"
             ],
             "args": [
-                "-api-only"
+                "-api-only",
+                "-no-ssl"
             ]
         },
         {
