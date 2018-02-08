@@ -93,6 +93,7 @@ schema.Hold.virtual("book", {
     ref: "Book",
     localField: "isbn",
     foreignField: "isbn",
+    justOne: true
 });
 exports.Model = {
     Person: mongoose.model("Person", schema.Person),
@@ -218,7 +219,9 @@ class Database {
     static async getHolds(query, options) {
         // populate by default
         if (!options || (options && options.populate)) {
-            query = query.populate("person").populate("book");
+            query = query
+                .populate("person", "name id username")
+                .populate({ path: "book", populate: { path: "authors", select: "name id username" } });
         }
         if (options && options.limit)
             query = query.limit(options.limit);

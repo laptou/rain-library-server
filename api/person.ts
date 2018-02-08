@@ -2,7 +2,7 @@ import * as Router from "koa-router";
 import * as Rx from "rxjs";
 
 import { AuthWall } from "../auth";
-import { Database, Model } from "../data";
+import { Database, Hold, Model } from "../data";
 import { BookStatus } from "./book";
 import * as validate from "./validate";
 
@@ -159,7 +159,7 @@ PersonRouter
         }
 
         ctx.response.body = { status: BookStatus.None };
-    })
+    });
 
 PersonRouter.get("/u/:un", async ctx =>
 {
@@ -184,5 +184,4 @@ PersonRouter.get("/search/:query", async ctx =>
         ctx.response.body = err.message;
     }
 });
-
 
