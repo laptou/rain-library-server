@@ -4,11 +4,11 @@ import { MongoError } from "mongodb";
 import * as Rx from "rxjs";
 
 import { AuthWall } from "../auth";
-import { Database, Hold, Model } from "../data";
+import { Database, Model } from "../data";
 import { Logger, LogSource } from "../util";
 import * as validate from "./validate";
 
-enum BookStatus
+export enum BookStatus
 {
     None = "none",
     OnHold = "on_hold",
@@ -155,41 +155,6 @@ BookRouter
     async ctx =>
     {
         // if the book was overdue, assess the fine
-    });
-
-BookRouter
-    .get("/status/checkedout", AuthWall(), async ctx =>
-    {
-        ctx.response.body = await Database.getCurrentCheckoutsForUser(ctx.state.user.id);
-    })
-    .get("/status/:isbn", AuthWall(), async ctx =>
-    {
-        const checkouts = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
-
-        if (checkouts.length > 0)
-        {
-            const checkout = checkouts.sort((a, b) => a.start < b.start ? -1 : 1)[0];
-
-            if (checkout.due < new Date())
-                ctx.response.body = { status: BookStatus.Overdue, checkout };
-            else
-                ctx.response.body = { status: BookStatus.CheckedOut, checkout };
-            return;
-        }
-
-        const holds = await Database.getPendingHoldsForBook(ctx.params.isbn, { populate: false });
-        const position = await Rx.Observable
-            .from(holds)
-            .findIndex((hold: Hold) => hold.person.toString() === ctx.state.user.id)
-            .toPromise();
-
-        if (position >= 0)
-        {
-            ctx.response.body = { status: BookStatus.OnHold, hold: holds[position], position };
-            return;
-        }
-
-        ctx.response.body = { status: BookStatus.None };
     });
 
 BookRouter.get("/author/:id", async ctx =>

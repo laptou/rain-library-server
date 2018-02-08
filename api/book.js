@@ -14,7 +14,7 @@ var BookStatus;
     BookStatus["CheckedOut"] = "checked_out";
     BookStatus["Overdue"] = "overdue";
     BookStatus["Unavailable"] = "unavailable";
-})(BookStatus || (BookStatus = {}));
+})(BookStatus = exports.BookStatus || (exports.BookStatus = {}));
 const logger = new util_1.Logger(util_1.LogSource.Api);
 exports.BookRouter = new Router();
 exports.BookRouter.param("isbn", validate.Isbn);
@@ -110,31 +110,6 @@ exports.BookRouter
     user: "string",
 }), async (ctx) => {
     // if the book was overdue, assess the fine
-});
-exports.BookRouter
-    .get("/status/checkedout", auth_1.AuthWall(), async (ctx) => {
-    ctx.response.body = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id);
-})
-    .get("/status/:isbn", auth_1.AuthWall(), async (ctx) => {
-    const checkouts = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
-    if (checkouts.length > 0) {
-        const checkout = checkouts.sort((a, b) => a.start < b.start ? -1 : 1)[0];
-        if (checkout.due < new Date())
-            ctx.response.body = { status: BookStatus.Overdue, checkout };
-        else
-            ctx.response.body = { status: BookStatus.CheckedOut, checkout };
-        return;
-    }
-    const holds = await data_1.Database.getPendingHoldsForBook(ctx.params.isbn, { populate: false });
-    const position = await Rx.Observable
-        .from(holds)
-        .findIndex((hold) => hold.person.toString() === ctx.state.user.id)
-        .toPromise();
-    if (position >= 0) {
-        ctx.response.body = { status: BookStatus.OnHold, hold: holds[position], position };
-        return;
-    }
-    ctx.response.body = { status: BookStatus.None };
 });
 exports.BookRouter.get("/author/:id", async (ctx) => {
     ctx.response.body = await data_1.Database.getBooksByAuthor(ctx.params.id);

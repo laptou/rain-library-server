@@ -46,12 +46,13 @@ exports.HoldRouter
         ctx.status = 400;
         return;
     }
-    await new data_1.Model.Hold({
+    const model = await new data_1.Model.Hold({
         date: new Date(),
         person: ctx.state.user.id,
-        isbn: ctx.request.body.isbn,
+        isbn: ctx.params.isbn,
         completed: false
-    }).save();
+    });
+    model.save();
     ctx.status = 200;
 })
     .delete("/me/:isbn", auth_1.AuthWall("place_hold"), async (ctx) => {

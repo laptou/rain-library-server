@@ -12,11 +12,13 @@
             "program": "${workspaceFolder}/server.js",
             "console": "integratedTerminal",
             "smartStep": true,
+            "showAsyncStacks": true,
             "skipFiles": [
                 "node_modules/"
             ],
             "args": [
                 "-api-only",
+                "-no-http2",
                 "-no-ssl"
             ]
         },
@@ -28,6 +30,7 @@
             "program": "${workspaceFolder}/server.js",
             "console": "integratedTerminal",
             "smartStep": true,
+            "showAsyncStacks": true,
             "skipFiles": [
                 "node_modules/"
             ],
@@ -43,6 +46,7 @@
             "program": "${workspaceFolder}/server.js",
             "console": "integratedTerminal",
             "smartStep": true,
+            "showAsyncStacks": true,
             "args": [
                 "-no-http2"
             ],

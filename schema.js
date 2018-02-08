@@ -30,10 +30,11 @@
             validator: {
                 $jsonSchema: {
                     bsonType: "object",
-                    required: ["date", "copy", "person", "completed", "amount"],
+                    required: ["date", "copy", "person", "completed", "amount", "checkout"],
                     properties: {
                         date: { bsonType: "date" },
                         copy: { bsonType: "objectId" },
+                        checkout: { bsonType: "objectId" },
                         person: { bsonType: "objectId" },
                         completed: { bsonType: "bool" },
                         amount: { bsonType: "decimal" }

@@ -1,7 +1,9 @@
 import * as Router from "koa-router";
+import * as Rx from "rxjs";
 
 import { AuthWall } from "../auth";
 import { Database, Model } from "../data";
+import { BookStatus } from "./book";
 import * as validate from "./validate";
 
 export const PersonRouter = new Router();
@@ -93,6 +95,71 @@ PersonRouter
             ctx.response.status = 500;
         }
     });
+
+PersonRouter
+    .get("/me/status/checkedout", AuthWall(), async ctx =>
+    {
+        ctx.response.body = await Database.getCurrentCheckoutsForUser(ctx.state.user.id);
+    })
+    .get("/me/status/onhold", AuthWall(), async ctx =>
+    {
+        ctx.response.body = await Database.getPendingHoldsForPerson(ctx.state.user.id);
+    })
+    .get("/me/status/all", AuthWall(), async ctx =>
+    {
+        const checkouts = await Database.getCheckoutsForUser(ctx.state.user.id);
+        const holds = await Database.getPendingHoldsForPerson(ctx.state.user.id);
+
+        ctx.response.body = [
+            ...checkouts.map(c => Object.assign(c.toJSON(), { type: "checkout" })),
+            ...holds.map(h => Object.assign(h.toJSON(), { type: "hold" }))];
+    })
+    .get("/:id/status/checkedout", AuthWall("modify_person"), async ctx =>
+    {
+        ctx.response.body = await Database.getCurrentCheckoutsForUser(ctx.params.id);
+    })
+    .get("/:id/status/onhold", AuthWall("modify_person"), async ctx =>
+    {
+        ctx.response.body = await Database.getPendingHoldsForPerson(ctx.params.id);
+    })
+    .get("/:id/status/all", AuthWall("modify_person"), async ctx =>
+    {
+        const checkouts = await Database.getCheckoutsForUser(ctx.params.id);
+        const holds = await Database.getPendingHoldsForPerson(ctx.params.id);
+
+        ctx.response.body = [
+            ...checkouts.map(c => Object.assign(c.toJSON(), { type: "checkout" })),
+            ...holds.map(h => Object.assign(h.toJSON(), { type: "hold" }))];
+    })
+    .get("/me/status/:isbn", AuthWall(), async ctx =>
+    {
+        const checkouts = await Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
+
+        if (checkouts.length > 0)
+        {
+            const checkout = checkouts.sort((a, b) => a.start < b.start ? -1 : 1)[0];
+
+            if (checkout.due < new Date())
+                ctx.response.body = { status: BookStatus.Overdue, checkout };
+            else
+                ctx.response.body = { status: BookStatus.CheckedOut, checkout };
+            return;
+        }
+
+        const holds = await Database.getPendingHoldsForBook(ctx.params.isbn, { populate: false });
+        const position = await Rx.Observable
+            .from(holds)
+            .findIndex((hold: Hold) => hold.person.toString() === ctx.state.user.id)
+            .toPromise();
+
+        if (position >= 0)
+        {
+            ctx.response.body = { status: BookStatus.OnHold, hold: holds[position], position };
+            return;
+        }
+
+        ctx.response.body = { status: BookStatus.None };
+    })
 
 PersonRouter.get("/u/:un", async ctx =>
 {

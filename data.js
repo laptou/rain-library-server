@@ -9,13 +9,12 @@ const conn = mongoose.connection;
 const logger = new util_1.Logger(util_1.LogSource.Database);
 const connect = (async () => {
     let target = config.db;
-    let success = false;
-    while (!success) {
+    while (true) {
         try {
             logger.info("Attempting to connect to database.");
             await mongoose.connect(target, { useMongoClient: true });
             logger.info("Successfully connected to database.");
-            success = true;
+            break;
         }
         catch (err) {
             logger.error("Database connection failed: " + err);
@@ -25,8 +24,8 @@ const connect = (async () => {
             }
         }
     }
+    conn.once("error", connect);
 });
-conn.on("disconnected", connect);
 connect();
 const schema = {
     Person: new mongoose.Schema({
@@ -94,7 +93,6 @@ schema.Hold.virtual("book", {
     ref: "Book",
     localField: "isbn",
     foreignField: "isbn",
-    justOne: true
 });
 exports.Model = {
     Person: mongoose.model("Person", schema.Person),
@@ -149,6 +147,18 @@ class Database {
         }
         return await Database.getCheckouts(exports.Model.Checkout.find({
             completed: false,
+            person: userId
+        }), options);
+    }
+    static async getCheckoutsForUser(userId, isbn, options) {
+        if (isbn) {
+            const book = await exports.Model.Book.findOne({ isbn });
+            return await Database.getCheckouts(exports.Model.Checkout.find({
+                person: userId,
+                copy: { $in: book.copies }
+            }), options);
+        }
+        return await Database.getCheckouts(exports.Model.Checkout.find({
             person: userId
         }), options);
     }
@@ -207,8 +217,9 @@ class Database {
     }
     static async getHolds(query, options) {
         // populate by default
-        if (!options || (options && options.populate))
-            query = query.populate("person");
+        if (!options || (options && options.populate)) {
+            query = query.populate("person").populate("book");
+        }
         if (options && options.limit)
             query = query.limit(options.limit);
         return await query.exec();

@@ -14,20 +14,20 @@ const logger = new Logger(LogSource.Database);
 const connect = (async () =>
 {
     let target = config.db;
-    let success = false;
 
-    while (!success)
+    while (true)
     {
         try
         {
             logger.info("Attempting to connect to database.");
             await mongoose.connect(target, { useMongoClient: true });
             logger.info("Successfully connected to database.");
-            success = true;
+            break;
         }
         catch (err)
         {
             logger.error("Database connection failed: " + err);
+
             if (dev)
             {
                 target = "mongodb://localhost/library";
@@ -35,9 +35,9 @@ const connect = (async () =>
             }
         }
     }
-});
 
-conn.on("disconnected", connect);
+    conn.once("error", connect);
+});
 
 connect();
 
@@ -126,7 +126,7 @@ schema.Hold.virtual("book", {
     ref: "Book",
     localField: "isbn",
     foreignField: "isbn",
-    justOne: true
+    // justOne: true
 });
 
 export let Model = {
@@ -319,6 +319,32 @@ export class Database
         );
     }
 
+    static async getCheckoutsForUser(
+        userId: string,
+        isbn?: string,
+        options?: QueryOptions
+    ): Promise<Checkout[]>
+    {
+        if (isbn)
+        {
+            const book = await Model.Book.findOne({ isbn });
+            return await Database.getCheckouts(
+                Model.Checkout.find({
+                    person: userId,
+                    copy: { $in: book.copies }
+                }),
+                options
+            );
+        }
+
+        return await Database.getCheckouts(
+            Model.Checkout.find({
+                person: userId
+            }),
+            options
+        );
+    }
+
     static async getCurrentCheckoutsForCopy(
         copyId: string,
         options?: QueryOptions
@@ -464,7 +490,9 @@ export class Database
     {
         // populate by default
         if (!options || (options && options.populate))
-            query = query.populate("person");
+        {
+            query = query.populate("person").populate("book");
+        }
 
         if (options && options.limit) query = query.limit(options.limit);
 

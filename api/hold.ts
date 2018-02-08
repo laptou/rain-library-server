@@ -62,12 +62,14 @@ HoldRouter
             return;
         }
 
-        await new Model.Hold({
+        const model = await new Model.Hold({
             date: new Date(),
             person: ctx.state.user.id,
-            isbn: ctx.request.body.isbn,
+            isbn: ctx.params.isbn,
             completed: false
-        }).save();
+        });
+
+        model.save();
 
         ctx.status = 200;
     })
