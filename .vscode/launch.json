@@ -23,6 +23,21 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Server (Production)",
+            "sourceMaps": true,
+            "program": "${workspaceFolder}/server.js",
+            "console": "integratedTerminal",
+            "smartStep": true,
+            "skipFiles": [
+                "node_modules/"
+            ],
+            "args": [
+                "-production"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Server",
             "sourceMaps": true,
             "program": "${workspaceFolder}/server.js",

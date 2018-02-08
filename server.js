@@ -31,8 +31,12 @@ if (apiOnly)
     logger.info("Running in API Only mode.");
 if (noHttp2)
     logger.info("Not running in HTTP2 mode.");
+else
+    logger.info("Running in HTTP2 mode.");
 if (dev)
     logger.info("Running in development mode.");
+else
+    logger.info("Running in production mode.");
 const app = new Koa();
 const router = new KoaRouter();
 app.keys = [
@@ -67,16 +71,20 @@ if (!apiOnly) {
         router.get("*", async (ctx) => {
             const target = path.join(config.output, ctx.path);
             const f = file => fs.existsSync(file) && fs.statSync(file).isFile();
+            logger.log(`\tCatch all router hit: ${target}`);
             if (ctx.path) {
                 if (f(target + ".gz")) {
+                    logger.log(`\tServing gzipped file: ${target}.gz`);
                     await KoaSendFile(ctx, target + ".gz");
                     ctx.set("Content-Encoding", "gzip");
                     ctx.type = path.extname(target);
                 }
                 else if (f(target)) {
+                    logger.log(`\tServing file: ${target}`);
                     await KoaSendFile(ctx, target);
                 }
                 else {
+                    logger.log(`\tServing index: ${target}`);
                     await KoaSendFile(ctx, path.join(config.output, "index.html"));
                 }
             }

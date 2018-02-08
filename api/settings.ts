@@ -9,11 +9,13 @@ import { Logger, LogSource } from "../util";
 const logger = new Logger(LogSource.Api);
 export let SettingsRouter = new KoaRouter();
 
-SettingsRouter.get("", AuthWall("admin"), async ctx => {
+SettingsRouter.get("/", AuthWall("admin", "author"), async ctx =>
+{
     await KoaSendfile(ctx, path.join(process.cwd(), "settings.json"));
 });
 
-SettingsRouter.post("", AuthWall("admin"), async ctx => {
+SettingsRouter.post("/", AuthWall("admin"), async ctx =>
+{
     await fs.writeFile(
         path.join(process.cwd(), "settings.json"),
         ctx.request.body
