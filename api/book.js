@@ -48,7 +48,7 @@ exports.BookRouter
     });
 });
 exports.BookRouter
-    .post("/:id/check_out", auth_1.AuthWall("check_out"), async (ctx) => {
+    .post("/:id/checkout", auth_1.AuthWall("check_out"), async (ctx) => {
     if (!validate.Object(ctx.request.body, {
         user: "string",
         length: "number?",
@@ -61,6 +61,11 @@ exports.BookRouter
     if (!user) {
         ctx.status = 404;
         ctx.message = "User not found.";
+        return;
+    }
+    if (user.permissions.indexOf("user") === -1) {
+        ctx.status = 400;
+        ctx.message = "This user cannot borrow books.";
         return;
     }
     const book = await data_1.Database.getBookByCopyId(ctx.params.id);
@@ -79,13 +84,15 @@ exports.BookRouter
         copy: ctx.params.id,
         person: user.id
     });
-    return new Promise((resolve, reject) => {
-        checkout.save(async (err) => {
+    await new Promise((resolve, reject) => {
+        checkout.save(async (err, res) => {
             if (err) {
                 ctx.status = 500;
             }
-            ctx.status = 200;
-            ctx.body = checkout;
+            else {
+                ctx.status = 200;
+                ctx.body = res;
+            }
             resolve();
         });
     });

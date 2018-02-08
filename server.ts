@@ -31,10 +31,10 @@ const dev =
     process.env.NODE_ENV === "development" &&
     process.argv.indexOf("-production") === -1;
 const apiOnly = process.argv.indexOf("-api-only") !== -1;
-const noSsl = process.argv.indexOf("-no-ssl") !== -1;
+const noHttp2 = process.argv.indexOf("-no-http2") !== -1;
 
 if (apiOnly) logger.info("Running in API Only mode.");
-if (noSsl) logger.info("Not running in SSL mode.");
+if (noHttp2) logger.info("Not running in HTTP2 mode.");
 if (dev) logger.info("Running in development mode.");
 
 const app = new Koa();
@@ -163,14 +163,10 @@ if (!apiOnly)
 app.use(router.routes());
 app.use(KoaStatic(config.output));
 
-if (dev && !noSsl)
+if (dev && !noHttp2)
 {
     const server = http2
-        .createSecureServer(
-        {
-            key: fs.readFileSync("key/server.key"),
-            cert: fs.readFileSync("key/server.crt")
-        }, app.callback() as any)
+        .createServer(app.callback() as any)
         .listen(process.env.PORT || 8000);
 } else
 {

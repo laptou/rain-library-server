@@ -28,6 +28,9 @@
             "program": "${workspaceFolder}/server.js",
             "console": "integratedTerminal",
             "smartStep": true,
+            "args": [
+                "-no-http2"
+            ],
             "skipFiles": [
                 "node_modules/"
             ]

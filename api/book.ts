@@ -1,5 +1,6 @@
 import * as Router from "koa-router";
 import * as moment from "moment";
+import { MongoError } from "mongodb";
 import * as Rx from "rxjs";
 
 import { AuthWall } from "../auth";
@@ -62,7 +63,7 @@ BookRouter
     });
 
 BookRouter
-    .post("/:id/check_out", AuthWall("check_out"), async ctx =>
+    .post("/:id/checkout", AuthWall("check_out"), async ctx =>
     {
         if (!validate.Object(ctx.request.body, {
             user: "string",
@@ -79,6 +80,13 @@ BookRouter
         {
             ctx.status = 404;
             ctx.message = "User not found.";
+            return;
+        }
+
+        if (user.permissions.indexOf("user") === -1)
+        {
+            ctx.status = 400;
+            ctx.message = "This user cannot borrow books.";
             return;
         }
 
@@ -102,17 +110,19 @@ BookRouter
             person: user.id
         });
 
-        return new Promise((resolve, reject) =>
+        await new Promise((resolve, reject) =>
         {
-            checkout.save(async (err) =>
+            checkout.save(async (err: MongoError, res) =>
             {
                 if (err)
                 {
                     ctx.status = 500;
                 }
-
-                ctx.status = 200;
-                ctx.body = checkout;
+                else
+                {
+                    ctx.status = 200;
+                    ctx.body = res;
+                }
 
                 resolve();
             });

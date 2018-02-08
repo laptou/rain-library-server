@@ -11,21 +11,35 @@ const conn = mongoose.connection;
 
 const logger = new Logger(LogSource.Database);
 
-mongoose
-    .connect(config.db, { useMongoClient: true })
-    .catch(err =>
+const connect = (async () =>
+{
+    let target = config.db;
+    let success = false;
+
+    while (!success)
     {
-        logger.error("Database connection failed: " + err);
-        if (dev)
+        try
         {
-            mongoose.connect("mongodb://localhost/library");
-            logger.info("Attempting to connect to localhost");
+            logger.info("Attempting to connect to database.");
+            await mongoose.connect(target, { useMongoClient: true });
+            logger.info("Successfully connected to database.");
+            success = true;
         }
-    })
-    .then(() =>
-    {
-        logger.info("Successfully connected to database.");
-    });
+        catch (err)
+        {
+            logger.error("Database connection failed: " + err);
+            if (dev)
+            {
+                target = "mongodb://localhost/library";
+                logger.info("Attempting to connect to localhost");
+            }
+        }
+    }
+});
+
+conn.on("disconnected", connect);
+
+connect();
 
 const schema = {
     Person: new mongoose.Schema(
@@ -65,6 +79,7 @@ const schema = {
         {
             start: Date,
             due: Date,
+            end: Date,
             completed: Boolean,
             penalty: Number,
             copy: mongoose.Schema.Types.ObjectId,
@@ -96,7 +111,8 @@ const schema = {
 schema.Checkout.virtual("book", {
     ref: "Book",
     localField: "copy",
-    foreignField: "copies"
+    foreignField: "copies",
+    justOne: true
 });
 
 schema.Fine.virtual("book", {
@@ -156,6 +172,7 @@ export interface Checkout extends mongoose.Document
 {
     start: Date;
     due: Date | null;
+    end: Date | null;
     completed: boolean;
     penalty: number;
     book: Book;
@@ -287,7 +304,7 @@ export class Database
                 Model.Checkout.find({
                     completed: false,
                     person: userId,
-                    book: { $in: book.copies }
+                    copy: { $in: book.copies }
                 }),
                 options
             );
