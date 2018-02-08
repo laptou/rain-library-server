@@ -319,6 +319,20 @@ export class Database
         );
     }
 
+    static async getCurrentCheckoutsForCopy(
+        copyId: string,
+        options?: QueryOptions
+    ): Promise<Checkout[]>
+    {
+        return await Database.getCheckouts(
+            Model.Checkout.find({
+                completed: false,
+                copy: copyId
+            }),
+            options
+        );
+    }
+
     static async getCheckoutsForIsbn(
         isbn: string,
         options?: QueryOptions

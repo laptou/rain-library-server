@@ -47,4 +47,13 @@ exports.Object = (obj, properties) => {
     }
     return true;
 };
+exports.Middleware = (properties) => {
+    return async (ctx, next) => {
+        if (!exports.Object(ctx.request.body, properties)) {
+            ctx.status = 400;
+            return;
+        }
+        await next();
+    };
+};
 //# sourceMappingURL=validate.js.map

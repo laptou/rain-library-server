@@ -1,3 +1,6 @@
+import { Context } from "koa";
+import { IMiddleware } from "koa-router";
+
 export const Isbn = async (isbn, ctx, next) =>
 {
     if (isbn.match(/^\d{13}|\d{10}$/))
@@ -63,4 +66,18 @@ export const Object = (obj: any, properties: any) =>
     }
 
     return true;
+};
+
+export const Middleware = (properties: any): IMiddleware => 
+{
+    return async (ctx: Context, next) =>
+    {
+        if (!Object(ctx.request.body, properties))
+        {
+            ctx.status = 400;
+            return;
+        }
+
+        await next();
+    };
 };

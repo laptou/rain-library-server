@@ -48,15 +48,11 @@ exports.BookRouter
     });
 });
 exports.BookRouter
-    .post("/:id/checkout", auth_1.AuthWall("check_out"), async (ctx) => {
-    if (!validate.Object(ctx.request.body, {
-        user: "string",
-        length: "number?",
-        penalty: "number?"
-    })) {
-        ctx.status = 400;
-        return;
-    }
+    .post("/:id/checkout", auth_1.AuthWall("check_out"), validate.Middleware({
+    user: "string",
+    length: "number?",
+    penalty: "number?"
+}), async (ctx) => {
     const user = await data_1.Database.getPersonById(ctx.request.body.user);
     if (!user) {
         ctx.status = 404;
@@ -64,11 +60,24 @@ exports.BookRouter
         return;
     }
     if (user.permissions.indexOf("user") === -1) {
-        ctx.status = 400;
+        ctx.status = 403;
         ctx.message = "This user cannot borrow books.";
         return;
     }
-    const book = await data_1.Database.getBookByCopyId(ctx.params.id);
+    const checkouts = await data_1.Database.getCurrentCheckoutsForCopy(ctx.params.id, { populate: false });
+    if (checkouts.length > 0) {
+        ctx.status = 400;
+        ctx.message = "This book has already been checked out.";
+        return;
+    }
+    if (user.limits && user.limits.books) {
+        if (user.limits.books <= checkouts.length) {
+            ctx.status = 403;
+            ctx.message = "Checkout limit has been reached.";
+            return;
+        }
+    }
+    const book = await data_1.Database.getBookByCopyId(ctx.params.id, { populate: false });
     if (!book) {
         ctx.status = 404;
         ctx.message = "Book not found.";
@@ -96,9 +105,14 @@ exports.BookRouter
             resolve();
         });
     });
+})
+    .post("/:id/checkin", auth_1.AuthWall("check_out"), validate.Middleware({
+    user: "string",
+}), async (ctx) => {
+    // if the book was overdue, assess the fine
 });
 exports.BookRouter
-    .get("/status/checked_out", auth_1.AuthWall(), async (ctx) => {
+    .get("/status/checkedout", auth_1.AuthWall(), async (ctx) => {
     ctx.response.body = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id);
 })
     .get("/status/:isbn", auth_1.AuthWall(), async (ctx) => {

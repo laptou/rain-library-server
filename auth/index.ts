@@ -116,12 +116,9 @@ export const AuthRouter = new Router();
 export const AuthWall: (...permissions: Permission[]) => IMiddleware = (...permissions: Permission[]) =>
 {
     if (permissions.length === 0) permissions = ["user"];
-    let err = new Error();
-    let stack = err.stack;
 
     return async (ctx, next) =>
     {
-        console.log(stack);
         let authenticated = ctx.isAuthenticated();
 
         if (authenticated)

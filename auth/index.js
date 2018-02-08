@@ -72,10 +72,7 @@ exports.AuthRouter = new Router();
 exports.AuthWall = (...permissions) => {
     if (permissions.length === 0)
         permissions = ["user"];
-    let err = new Error();
-    let stack = err.stack;
     return async (ctx, next) => {
-        console.log(stack);
         let authenticated = ctx.isAuthenticated();
         if (authenticated) {
             if (ctx.state.user.permissions.indexOf("admin") === -1) {

@@ -152,6 +152,12 @@ class Database {
             person: userId
         }), options);
     }
+    static async getCurrentCheckoutsForCopy(copyId, options) {
+        return await Database.getCheckouts(exports.Model.Checkout.find({
+            completed: false,
+            copy: copyId
+        }), options);
+    }
     static async getCheckoutsForIsbn(isbn, options) {
         const book = await exports.Model.Book.findOne({ isbn });
         return await Database.getCheckouts(exports.Model.Checkout.find({
