@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import * as http2 from "http2";
 import * as Koa from "koa";
 import * as KoaBodyParser from "koa-bodyparser";
 import * as KoaJson from "koa-json";
@@ -32,10 +31,16 @@ const dev =
     process.argv.indexOf("-production") === -1;
 const apiOnly = process.argv.indexOf("-api-only") !== -1;
 const noHttp2 = process.argv.indexOf("-no-http2") !== -1;
+const noSsl = process.argv.indexOf("-no-ssl") !== -1;
 
 if (apiOnly) logger.info("Running in API Only mode.");
+
+if (noSsl) logger.info("Not running with SSL mode.");
+else logger.info("Running with SSL mode.");
+
 if (noHttp2) logger.info("Not running in HTTP2 mode.");
 else logger.info("Running in HTTP2 mode.");
+
 if (dev) logger.info("Running in development mode.");
 else logger.info("Running in production mode.");
 
@@ -170,11 +175,29 @@ if (!apiOnly)
 app.use(router.routes());
 app.use(KoaStatic(config.output));
 
-if (dev && !noHttp2)
+if (dev)
 {
-    const server = http2
-        .createServer(app.callback() as any)
+    let http = require("http");
+    let https = require("https").createServer;
+
+    if (!noHttp2)
+    {
+        http = require("http2");
+        https = http.createSecureServer;
+    }
+
+    http.createServer(app.callback() as any)
         .listen(process.env.PORT || 8000);
+
+    if (!noSsl)
+    {
+        https(
+            {
+                key: fs.readFileSync("key/server.key"),
+                cert: fs.readFileSync("key/server.crt")
+            }, app.callback() as any)
+            .listen(8001);
+    }
 }
 else
 {
