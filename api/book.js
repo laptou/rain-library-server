@@ -21,7 +21,11 @@ exports.BookRouter.param("isbn", validate.Isbn);
 exports.BookRouter.param("id", validate.Id);
 exports.BookRouter
     .get("/:isbn", async (ctx, next) => {
-    ctx.response.body = await data_1.Database.getBookByIsbn(ctx.params.isbn);
+    const book = await data_1.Database.getBookByIsbn(ctx.params.isbn);
+    if (!book)
+        ctx.status = 404;
+    else
+        ctx.response.body = book;
 })
     .post("/:isbn", auth_1.AuthWall("modify_book"), ctx => {
     if (!validate.Object(ctx.body, {
@@ -48,7 +52,21 @@ exports.BookRouter
     });
 });
 exports.BookRouter
-    .post("/:id/checkout", auth_1.AuthWall("check_out"), validate.Middleware({
+    .get("/copy/:id", async (ctx, next) => {
+    const book = await data_1.Database.getBookByCopyId(ctx.params.id);
+    if (!book)
+        ctx.status = 404;
+    else
+        ctx.response.body = book;
+})
+    .get("/copy/:id/checkout", auth_1.AuthWall("check_out"), async (ctx) => {
+    const checkout = await data_1.Database.getCurrentCheckoutForCopy(ctx.params.id, { populate: true });
+    if (!checkout)
+        ctx.status = 404;
+    else
+        ctx.response.body = checkout;
+})
+    .post("/copy/:id/checkout", auth_1.AuthWall("check_out"), validate.Middleware({
     user: "string",
     length: "number?",
     penalty: "number?"
@@ -64,13 +82,14 @@ exports.BookRouter
         ctx.message = "This user cannot borrow books.";
         return;
     }
-    const checkouts = await data_1.Database.getCurrentCheckoutsForCopy(ctx.params.id, { populate: false });
-    if (checkouts.length > 0) {
+    let checkout = await data_1.Database.getCurrentCheckoutForCopy(ctx.params.id, { populate: false });
+    if (checkout) {
         ctx.status = 400;
         ctx.message = "This book has already been checked out.";
         return;
     }
     if (user.limits && user.limits.books) {
+        const checkouts = await data_1.Database.getCurrentCheckoutsForUser(user.id, null, { populate: false });
         if (user.limits.books <= checkouts.length) {
             ctx.status = 403;
             ctx.message = "Checkout limit has been reached.";
@@ -85,7 +104,7 @@ exports.BookRouter
     }
     let length = ctx.request.body.length ? parseFloat(ctx.request.body.length) : Number.POSITIVE_INFINITY;
     length = Math.min(length, user.limits && user.limits.days ? user.limits.days : 7);
-    const checkout = new data_1.Model.Checkout({
+    checkout = new data_1.Model.Checkout({
         start: new Date(),
         due: moment().add(length, "days").toDate(),
         completed: false,
@@ -106,10 +125,30 @@ exports.BookRouter
         });
     });
 })
-    .post("/:id/checkin", auth_1.AuthWall("check_out"), validate.Middleware({
-    user: "string",
-}), async (ctx) => {
-    // if the book was overdue, assess the fine
+    .post("/copy/:id/checkin", auth_1.AuthWall("check_out"), async (ctx) => {
+    const checkout = await data_1.Database.getCurrentCheckoutForCopy(ctx.params.id, { populate: false });
+    if (!checkout) {
+        ctx.status = 400;
+        ctx.message = "This book was not checked out.";
+    }
+    checkout.completed = true;
+    checkout.end = new Date();
+    if (checkout.end > checkout.due) {
+        const days = Math.ceil(moment().diff(checkout.due, "days", true));
+        // if the book was overdue, assess the fine
+        const fine = new data_1.Model.Fine({
+            date: new Date(),
+            completed: false,
+            checkout,
+            copy: checkout.copy,
+            person: checkout.person,
+            amount: (days * checkout.penalty).toPrecision(2) // mongoose will
+            // convert string to decimal, but not js float to decimal -_-
+        });
+        await fine.save();
+    }
+    await checkout.save();
+    ctx.status = 200;
 });
 exports.BookRouter.get("/author/:id", async (ctx) => {
     ctx.response.body = await data_1.Database.getBooksByAuthor(ctx.params.id);

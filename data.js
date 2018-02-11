@@ -73,6 +73,7 @@ const schema = {
         date: Date,
         completed: Boolean,
         copy: mongoose.Schema.Types.ObjectId,
+        checkout: { type: mongoose.Schema.Types.ObjectId, ref: "Checkout" },
         person: { type: mongoose.Schema.Types.ObjectId, ref: "Person" },
         amount: mongoose.Schema.Types.Decimal128
     }, { toObject: { virtuals: true }, toJSON: { virtuals: true } })
@@ -99,6 +100,7 @@ exports.Model = {
     Person: mongoose.model("Person", schema.Person),
     Book: mongoose.model("Book", schema.Book),
     Hold: mongoose.model("Hold", schema.Hold),
+    Fine: mongoose.model("Fine", schema.Fine),
     Checkout: mongoose.model("Checkout", schema.Checkout)
 };
 class Database {
@@ -163,8 +165,8 @@ class Database {
             person: userId
         }), options);
     }
-    static async getCurrentCheckoutsForCopy(copyId, options) {
-        return await Database.getCheckouts(exports.Model.Checkout.find({
+    static async getCurrentCheckoutForCopy(copyId, options) {
+        return await Database.getCheckouts(exports.Model.Checkout.findOne({
             completed: false,
             copy: copyId
         }), options);
@@ -245,6 +247,11 @@ class Database {
             query = query.populate({
                 path: "book",
                 populate: { path: "authors" }
+            });
+        // must explicitly be set to true to do full population
+        if (options && options.populate === true)
+            query = query.populate({
+                path: "person"
             });
         if (options && options.limit)
             query = query.limit(options.limit);

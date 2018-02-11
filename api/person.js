@@ -74,6 +74,14 @@ exports.PersonRouter
     .get("/me/status/onhold", auth_1.AuthWall(), async (ctx) => {
     ctx.response.body = await data_1.Database.getPendingHoldsForPerson(ctx.state.user.id);
 })
+    .get("/me/status/current", auth_1.AuthWall(), async (ctx) => {
+    const checkouts = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id);
+    const holds = await data_1.Database.getPendingHoldsForPerson(ctx.state.user.id);
+    ctx.response.body = [
+        ...checkouts.map(c => Object.assign(c.toJSON(), { type: "checkout" })),
+        ...holds.map(h => Object.assign(h.toJSON(), { type: "hold" }))
+    ];
+})
     .get("/me/status/all", auth_1.AuthWall(), async (ctx) => {
     const checkouts = await data_1.Database.getCheckoutsForUser(ctx.state.user.id);
     const holds = await data_1.Database.getPendingHoldsForPerson(ctx.state.user.id);
@@ -87,6 +95,14 @@ exports.PersonRouter
 })
     .get("/:id/status/onhold", auth_1.AuthWall("modify_person"), async (ctx) => {
     ctx.response.body = await data_1.Database.getPendingHoldsForPerson(ctx.params.id);
+})
+    .get("/:id/status/all", auth_1.AuthWall("modify_person"), async (ctx) => {
+    const checkouts = await data_1.Database.getCurrentCheckoutsForUser(ctx.params.id);
+    const holds = await data_1.Database.getPendingHoldsForPerson(ctx.params.id);
+    ctx.response.body = [
+        ...checkouts.map(c => Object.assign(c.toJSON(), { type: "checkout" })),
+        ...holds.map(h => Object.assign(h.toJSON(), { type: "hold" }))
+    ];
 })
     .get("/:id/status/all", auth_1.AuthWall("modify_person"), async (ctx) => {
     const checkouts = await data_1.Database.getCheckoutsForUser(ctx.params.id);

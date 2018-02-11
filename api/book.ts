@@ -27,7 +27,9 @@ BookRouter.param("id", validate.Id);
 BookRouter
     .get("/:isbn", async (ctx, next) =>
     {
-        ctx.response.body = await Database.getBookByIsbn(ctx.params.isbn);
+        const book = await Database.getBookByIsbn(ctx.params.isbn);
+        if (!book) ctx.status = 404;
+        else ctx.response.body = book;
     })
     .post("/:isbn", AuthWall("modify_book"), ctx =>
     {
@@ -63,99 +65,143 @@ BookRouter
     });
 
 BookRouter
-    .post("/:id/checkout",
-    AuthWall("check_out"),
-    validate.Middleware({
-        user: "string",
-        length: "number?",
-        penalty: "number?"
-    }),
-    async ctx =>
+    .get("/copy/:id", async (ctx, next) =>
     {
-        const user = await Database.getPersonById(ctx.request.body.user);
-
-        if (!user)
+        const book = await Database.getBookByCopyId(ctx.params.id);
+        if (!book) ctx.status = 404;
+        else ctx.response.body = book;
+    })
+    .get("/copy/:id/checkout",
+        AuthWall("check_out"),
+        async ctx =>
         {
-            ctx.status = 404;
-            ctx.message = "User not found.";
-            return;
-        }
-
-        if (user.permissions.indexOf("user") === -1)
+            const checkout = await Database.getCurrentCheckoutForCopy(ctx.params.id, { populate: true });
+            if (!checkout) ctx.status = 404;
+            else ctx.response.body = checkout;
+        })
+    .post("/copy/:id/checkout",
+        AuthWall("check_out"),
+        validate.Middleware({
+            user: "string",
+            length: "number?",
+            penalty: "number?"
+        }),
+        async ctx =>
         {
-            ctx.status = 403;
-            ctx.message = "This user cannot borrow books.";
-            return;
-        }
+            const user = await Database.getPersonById(ctx.request.body.user);
 
-        const checkouts = await Database.getCurrentCheckoutsForCopy(ctx.params.id, { populate: false });
-
-        if (checkouts.length > 0)
-        {
-            ctx.status = 400;
-            ctx.message = "This book has already been checked out.";
-            return;
-        }
-
-        if (user.limits && user.limits.books)
-        {
-
-            if (user.limits.books <= checkouts.length)
+            if (!user)
             {
-                ctx.status = 403;
-                ctx.message = "Checkout limit has been reached.";
+                ctx.status = 404;
+                ctx.message = "User not found.";
                 return;
             }
-        }
 
-        const book = await Database.getBookByCopyId(ctx.params.id, { populate: false });
-
-        if (!book)
-        {
-            ctx.status = 404;
-            ctx.message = "Book not found.";
-            return;
-        }
-
-        let length = ctx.request.body.length ? parseFloat(ctx.request.body.length) : Number.POSITIVE_INFINITY;
-        length = Math.min(length, user.limits && user.limits.days ? user.limits.days : 7);
-
-        const checkout = new Model.Checkout({
-            start: new Date(),
-            due: moment().add(length, "days").toDate(),
-            completed: false,
-            penalty: ctx.request.body.penalty || 1,
-            copy: ctx.params.id,
-            person: user.id
-        });
-
-        await new Promise((resolve, reject) =>
-        {
-            checkout.save(async (err: MongoError, res) =>
+            if (user.permissions.indexOf("user") === -1)
             {
-                if (err)
-                {
-                    ctx.status = 500;
-                }
-                else
-                {
-                    ctx.status = 200;
-                    ctx.body = res;
-                }
+                ctx.status = 403;
+                ctx.message = "This user cannot borrow books.";
+                return;
+            }
 
-                resolve();
+            let checkout = await Database.getCurrentCheckoutForCopy(ctx.params.id, { populate: false });
+
+            if (checkout)
+            {
+                ctx.status = 400;
+                ctx.message = "This book has already been checked out.";
+                return;
+            }
+
+            if (user.limits && user.limits.books)
+            {
+
+                const checkouts = await Database.getCurrentCheckoutsForUser(user.id, null, { populate: false });
+
+                if (user.limits.books <= checkouts.length)
+                {
+                    ctx.status = 403;
+                    ctx.message = "Checkout limit has been reached.";
+                    return;
+                }
+            }
+
+            const book = await Database.getBookByCopyId(ctx.params.id, { populate: false });
+
+            if (!book)
+            {
+                ctx.status = 404;
+                ctx.message = "Book not found.";
+                return;
+            }
+
+            let length = ctx.request.body.length ? parseFloat(ctx.request.body.length) : Number.POSITIVE_INFINITY;
+            length = Math.min(length, user.limits && user.limits.days ? user.limits.days : 7);
+
+            checkout = new Model.Checkout({
+                start: new Date(),
+                due: moment().add(length, "days").toDate(),
+                completed: false,
+                penalty: ctx.request.body.penalty || 1,
+                copy: ctx.params.id,
+                person: user.id
             });
+
+            await new Promise((resolve, reject) =>
+            {
+                checkout.save(async (err: MongoError, res) =>
+                {
+                    if (err)
+                    {
+                        ctx.status = 500;
+                    }
+                    else
+                    {
+                        ctx.status = 200;
+                        ctx.body = res;
+                    }
+
+                    resolve();
+                });
+            });
+        })
+    .post("/copy/:id/checkin",
+        AuthWall("check_out"),
+        async ctx =>
+        {
+            const checkout = await Database.getCurrentCheckoutForCopy(ctx.params.id, { populate: false });
+
+            if (!checkout)
+            {
+                ctx.status = 400;
+                ctx.message = "This book was not checked out.";
+            }
+
+            checkout.completed = true;
+            checkout.end = new Date();
+
+            if (checkout.end > checkout.due)
+            {
+                const days = Math.ceil(moment().diff(checkout.due, "days", true));
+
+                // if the book was overdue, assess the fine
+                const fine = new Model.Fine({
+                    date: new Date(),
+                    completed: false,
+                    checkout,
+                    copy: checkout.copy,
+                    person: checkout.person,
+                    amount: (days * checkout.penalty).toPrecision(2) // mongoose will
+                    // convert string to decimal, but not js float to decimal -_-
+                });
+
+                await fine.save();
+            }
+
+            await checkout.save();
+
+            ctx.status = 200;
         });
-    })
-    .post("/:id/checkin",
-    AuthWall("check_out"),
-    validate.Middleware({
-        user: "string",
-    }),
-    async ctx =>
-    {
-        // if the book was overdue, assess the fine
-    });
 
 BookRouter.get("/author/:id", async ctx =>
 {

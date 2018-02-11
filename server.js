@@ -32,7 +32,7 @@ if (apiOnly)
 if (noSsl)
     logger.info("Not running with SSL mode.");
 else
-    logger.info("Not running with SSL mode.");
+    logger.info("Running with SSL mode.");
 if (noHttp2)
     logger.info("Not running in HTTP2 mode.");
 else
@@ -64,7 +64,7 @@ app.use(KoaPassport.session());
 router.use("/api", api_1.ApiRouter.routes());
 router.use("/auth", auth_1.AuthRouter.routes());
 app.use(async (ctx, next) => {
-    logger.log(`${Moment().format("YYYY.MM.DD hh:mm:ssaZ")} - ${ctx.req.method} ${ctx.req.url}`);
+    logger.log(`${Moment().format("YYYY.MM.DD hh:mm:ssaZ")} - ${ctx.req.method} ${ctx.req.url} - HTTP ${ctx.req.httpVersion} - ${ctx.req.connection.remoteAddress}`);
     await next();
 });
 const config = require("../client/config");

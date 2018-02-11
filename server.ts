@@ -80,7 +80,7 @@ app.use(async (ctx, next) =>
     logger.log(
         `${Moment().format("YYYY.MM.DD hh:mm:ssaZ")} - ${ctx.req.method} ${
         ctx.req.url
-        }`
+        } - HTTP ${ctx.req.httpVersion} - ${ctx.req.connection.remoteAddress}`
     );
     await next();
 });
