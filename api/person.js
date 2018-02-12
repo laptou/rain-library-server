@@ -12,6 +12,8 @@ exports.PersonRouter
     .get("/:id", async (ctx) => {
     try {
         ctx.response.body = await data_1.Database.getPersonById(ctx.params.id);
+        if (ctx.response.body === null)
+            ctx.status = 404;
     }
     catch (err) {
         ctx.response.status = 403;
@@ -134,21 +136,13 @@ exports.PersonRouter
     ctx.response.body = { status: book_1.BookStatus.None };
 });
 exports.PersonRouter.get("/u/:un", async (ctx) => {
-    try {
-        ctx.response.body = await data_1.Database.getPersonByUsername(ctx.params.un);
-    }
-    catch (err) {
-        ctx.response.status = 403;
-        ctx.response.body = err.message;
+    ctx.response.body = await data_1.Database.getPersonByUsername(ctx.params.un);
+    if (ctx.response.body === null) {
+        ctx.status = 404;
+        ctx.message = "That person could not be found.";
     }
 });
 exports.PersonRouter.get("/search/:query", async (ctx) => {
-    try {
-        ctx.response.body = await data_1.Database.searchPeople(ctx.params.query);
-    }
-    catch (err) {
-        ctx.response.status = 403;
-        ctx.response.body = err.message;
-    }
+    ctx.response.body = await data_1.Database.searchPeople(ctx.params.query);
 });
 //# sourceMappingURL=person.js.map

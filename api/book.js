@@ -52,6 +52,13 @@ exports.BookRouter
     });
 });
 exports.BookRouter
+    .get("/all/checkedout", auth_1.AuthWall("check_out"), async (ctx) => {
+    ctx.response.body = await data_1.Database.getCheckoutsSince(moment().subtract(ctx.query["days"] || 7, "day").toDate(), { populate: true });
+})
+    .get("/all/fined", auth_1.AuthWall("modify_fine"), async (ctx) => {
+    ctx.response.body = await data_1.Database.getFinesSince(moment().subtract(ctx.query["days"] || 7, "day").toDate(), { populate: true });
+});
+exports.BookRouter
     .get("/copy/:id", async (ctx, next) => {
     const book = await data_1.Database.getBookByCopyId(ctx.params.id);
     if (!book)
@@ -101,6 +108,13 @@ exports.BookRouter
         ctx.status = 404;
         ctx.message = "Book not found.";
         return;
+    }
+    let holds = await data_1.Database.getPendingHoldsForBook(book.isbn, { populate: false });
+    holds = holds.filter(h => h.person.toString() === user.id);
+    if (holds.length) {
+        const hold = holds[0];
+        hold.completed = true;
+        await hold.save();
     }
     let length = ctx.request.body.length ? parseFloat(ctx.request.body.length) : Number.POSITIVE_INFINITY;
     length = Math.min(length, user.limits && user.limits.days ? user.limits.days : 7);

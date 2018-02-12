@@ -65,6 +65,24 @@ BookRouter
     });
 
 BookRouter
+    .get("/all/checkedout",
+        AuthWall("check_out"),
+        async ctx =>
+        {
+            ctx.response.body = await Database.getCheckoutsSince(
+                moment().subtract(ctx.query["days"] || 7, "day").toDate(),
+                { populate: true });
+        })
+    .get("/all/fined",
+        AuthWall("modify_fine"),
+        async ctx =>
+        {
+            ctx.response.body = await Database.getFinesSince(
+                moment().subtract(ctx.query["days"] || 7, "day").toDate(),
+                { populate: true });
+        });
+
+BookRouter
     .get("/copy/:id", async (ctx, next) =>
     {
         const book = await Database.getBookByCopyId(ctx.params.id);
@@ -79,6 +97,7 @@ BookRouter
             if (!checkout) ctx.status = 404;
             else ctx.response.body = checkout;
         })
+
     .post("/copy/:id/checkout",
         AuthWall("check_out"),
         validate.Middleware({
@@ -126,6 +145,7 @@ BookRouter
                 }
             }
 
+
             const book = await Database.getBookByCopyId(ctx.params.id, { populate: false });
 
             if (!book)
@@ -133,6 +153,16 @@ BookRouter
                 ctx.status = 404;
                 ctx.message = "Book not found.";
                 return;
+            }
+
+            let holds = await Database.getPendingHoldsForBook(book.isbn, { populate: false });
+            holds = holds.filter(h => h.person.toString() === user.id);
+
+            if (holds.length)
+            {
+                const hold = holds[0];
+                hold.completed = true;
+                await hold.save();
             }
 
             let length = ctx.request.body.length ? parseFloat(ctx.request.body.length) : Number.POSITIVE_INFINITY;

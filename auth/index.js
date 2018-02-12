@@ -24,8 +24,8 @@ KoaPassport.use("local-register", new passport_local_1.Strategy({ passReqToCallb
             });
             valid = false;
         }
-        let first = req.body.name.first || req.body.firstName;
-        let last = req.body.name.last || req.body.lastName;
+        const first = req.body.name.first || req.body.firstName;
+        const last = req.body.name.last || req.body.lastName;
         if (!first || !last) {
             done(null, null, {
                 message: "First and last name are required to create a new user."
@@ -33,7 +33,7 @@ KoaPassport.use("local-register", new passport_local_1.Strategy({ passReqToCallb
             valid = false;
         }
         if (valid) {
-            let hash = await bcrypt.hash(password, await bcrypt.genSalt(12));
+            const hash = await bcrypt.hash(password, await bcrypt.genSalt(12));
             person = new data_1.Model.Person();
             person.username = username;
             person.name = { first, last };
@@ -49,7 +49,7 @@ KoaPassport.use("local-register", new passport_local_1.Strategy({ passReqToCallb
 }));
 KoaPassport.use("local-login", new passport_local_1.Strategy({ passReqToCallback: true }, async (req, username, password, done) => {
     try {
-        let person = await data_1.Database.getPersonByUsername(username);
+        const person = await data_1.Database.getPersonByUsername(username);
         if (person) {
             if (person.permissions.indexOf("user") === -1) {
                 done(null, null, {

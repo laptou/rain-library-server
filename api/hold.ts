@@ -91,8 +91,8 @@ HoldRouter
 HoldRouter
     .get("/person/:id", AuthWall("modify_hold"), getHolds(ctx => Database.getHoldsForPerson(ctx.params.id)))
     .get("/person/:id/pending",
-    AuthWall("modify_hold"),
-    getHolds(ctx => Database.getPendingHoldsForPerson(ctx.params.id)));
+        AuthWall("modify_hold"),
+        getHolds(ctx => Database.getPendingHoldsForPerson(ctx.params.id)));
 
 HoldRouter
     .get("/:id", AuthWall("place_hold"), async ctx =>
@@ -157,11 +157,15 @@ HoldRouter
     });
 
 HoldRouter
-    .get("/book/:isbn", AuthWall("modify_hold"), async ctx =>
+    .get("/book/:isbn/all", AuthWall("modify_hold"), async ctx =>
     {
         ctx.body = await Database.getHoldsForBook(ctx.params.isbn);
     })
+    .get("/book/:isbn", AuthWall("modify_hold"), async ctx =>
+    {
+        ctx.body = await Database.getPendingHoldsForBook(ctx.params.isbn);
+    })
     .get("/book/:isbn/count", AuthWall("place_hold"), async ctx =>
     {
-        ctx.body = (await Database.getHoldsForBook(ctx.params.isbn)).length;
+        ctx.body = (await Database.getPendingHoldsForBook(ctx.params.isbn)).length;
     });

@@ -208,6 +208,20 @@ export interface QueryOptions
 
 export class Database
 {
+    static async getFinesSince(
+        date: Date,
+        options?: QueryOptions
+    ): Promise<Fine[]>
+    {
+        return await Model.Fine
+            .find({
+                date: { $gte: date }
+            })
+            .populate("checkout")
+            .populate("person")
+            .populate("book");
+    }
+
     static async getBookById(
         id: string,
         options?: QueryOptions
@@ -356,6 +370,19 @@ export class Database
             Model.Checkout.findOne({
                 completed: false,
                 copy: copyId
+            }),
+            options
+        );
+    }
+
+    static async getCheckoutsSince(
+        date: Date,
+        options?: QueryOptions
+    ): Promise<Checkout[]>
+    {
+        return await Database.getCheckouts(
+            Model.Checkout.find({
+                start: { $gte: date }
             }),
             options
         );

@@ -111,10 +111,13 @@ exports.HoldRouter
     }
 });
 exports.HoldRouter
-    .get("/book/:isbn", auth_1.AuthWall("modify_hold"), async (ctx) => {
+    .get("/book/:isbn/all", auth_1.AuthWall("modify_hold"), async (ctx) => {
     ctx.body = await data_1.Database.getHoldsForBook(ctx.params.isbn);
 })
+    .get("/book/:isbn", auth_1.AuthWall("modify_hold"), async (ctx) => {
+    ctx.body = await data_1.Database.getPendingHoldsForBook(ctx.params.isbn);
+})
     .get("/book/:isbn/count", auth_1.AuthWall("place_hold"), async (ctx) => {
-    ctx.body = (await data_1.Database.getHoldsForBook(ctx.params.isbn)).length;
+    ctx.body = (await data_1.Database.getPendingHoldsForBook(ctx.params.isbn)).length;
 });
 //# sourceMappingURL=hold.js.map

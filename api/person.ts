@@ -16,6 +16,7 @@ PersonRouter
         try
         {
             ctx.response.body = await Database.getPersonById(ctx.params.id);
+            if (ctx.response.body === null) ctx.status = 404;
         } catch (err)
         {
             ctx.response.status = 403;
@@ -181,25 +182,17 @@ PersonRouter
 
 PersonRouter.get("/u/:un", async ctx =>
 {
-    try
+    ctx.response.body = await Database.getPersonByUsername(ctx.params.un);
+
+    if (ctx.response.body === null)
     {
-        ctx.response.body = await Database.getPersonByUsername(ctx.params.un);
-    } catch (err)
-    {
-        ctx.response.status = 403;
-        ctx.response.body = err.message;
+        ctx.status = 404;
+        ctx.message = "That person could not be found.";
     }
 });
 
 PersonRouter.get("/search/:query", async ctx =>
 {
-    try
-    {
-        ctx.response.body = await Database.searchPeople(ctx.params.query);
-    } catch (err)
-    {
-        ctx.response.status = 403;
-        ctx.response.body = err.message;
-    }
+    ctx.response.body = await Database.searchPeople(ctx.params.query);
 });
 

@@ -39,8 +39,8 @@ KoaPassport.use(
                     valid = false;
                 }
 
-                let first = req.body.name.first || req.body.firstName;
-                let last = req.body.name.last || req.body.lastName;
+                const first = req.body.name.first || req.body.firstName;
+                const last = req.body.name.last || req.body.lastName;
 
                 if (!first || !last)
                 {
@@ -53,7 +53,7 @@ KoaPassport.use(
 
                 if (valid)
                 {
-                    let hash = await bcrypt.hash(
+                    const hash = await bcrypt.hash(
                         password,
                         await bcrypt.genSalt(12)
                     );
@@ -83,7 +83,7 @@ KoaPassport.use(
         {
             try
             {
-                let person = await Database.getPersonByUsername(username);
+                const person = await Database.getPersonByUsername(username);
 
                 if (person)
                 {

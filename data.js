@@ -104,6 +104,15 @@ exports.Model = {
     Checkout: mongoose.model("Checkout", schema.Checkout)
 };
 class Database {
+    static async getFinesSince(date, options) {
+        return await exports.Model.Fine
+            .find({
+            date: { $gte: date }
+        })
+            .populate("checkout")
+            .populate("person")
+            .populate("book");
+    }
     static async getBookById(id, options) {
         return await Database.getBooks(exports.Model.Book.findById(id), options);
     }
@@ -169,6 +178,11 @@ class Database {
         return await Database.getCheckouts(exports.Model.Checkout.findOne({
             completed: false,
             copy: copyId
+        }), options);
+    }
+    static async getCheckoutsSince(date, options) {
+        return await Database.getCheckouts(exports.Model.Checkout.find({
+            start: { $gte: date }
         }), options);
     }
     static async getCheckoutsForIsbn(isbn, options) {
