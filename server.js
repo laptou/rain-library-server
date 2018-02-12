@@ -23,20 +23,32 @@ process.on("uncaughtException", err => {
     process.exit(1);
 });
 const dev = process.env.NODE_ENV === "development" &&
-    process.argv.indexOf("-production") === -1;
-const apiOnly = process.argv.indexOf("-api-only") !== -1;
-const noHttp2 = process.argv.indexOf("-no-http2") !== -1;
-const noSsl = process.argv.indexOf("-no-ssl") !== -1;
-if (apiOnly)
+    !process.argv.includes("-production");
+const serverConfig = require("./config");
+const flags = serverConfig.flags;
+const switches = {
+    api_only: "api-only",
+    http2: "http2",
+    ssl: "ssl"
+};
+for (const sw in switches) {
+    if (!switches.hasOwnProperty(sw))
+        continue;
+    if (process.argv.includes("-" + switches[sw]))
+        flags[sw] = true;
+    if (process.argv.includes("-no-" + switches[sw]))
+        flags[sw] = false;
+}
+if (flags.api_only)
     logger.info("Running in API Only mode.");
-if (noSsl)
-    logger.info("Not running with SSL mode.");
-else
+if (flags.ssl)
     logger.info("Running with SSL mode.");
-if (noHttp2)
-    logger.info("Not running in HTTP2 mode.");
 else
+    logger.info("Not running with SSL mode.");
+if (flags.http2)
     logger.info("Running in HTTP2 mode.");
+else
+    logger.info("Not running in HTTP2 mode.");
 if (dev)
     logger.info("Running in development mode.");
 else
@@ -67,13 +79,12 @@ app.use(async (ctx, next) => {
     logger.log(`${Moment().format("YYYY.MM.DD hh:mm:ssaZ")} - ${ctx.req.method} ${ctx.req.url} - HTTP ${ctx.req.httpVersion} - ${ctx.req.connection.remoteAddress}`);
     await next();
 });
-const config = require("../client/config");
-if (!apiOnly) {
-    logger.log("Not running in API Only mode.");
+const clientConfig = require("../client/config");
+if (!flags.api_only) {
     if (!dev) {
         logger.log("Configuring catch-all router.");
         router.get("*", async (ctx) => {
-            const target = path.join(config.output, ctx.path);
+            const target = path.join(clientConfig.output, ctx.path);
             const f = file => fs.existsSync(file) && fs.statSync(file).isFile();
             logger.log(`\tCatch all router hit: ${target}`);
             if (ctx.path) {
@@ -89,7 +100,7 @@ if (!apiOnly) {
                 }
                 else {
                     logger.log(`\tServing index: ${target}`);
-                    await KoaSendFile(ctx, path.join(config.output, "index.html"));
+                    await KoaSendFile(ctx, path.join(clientConfig.output, "index.html"));
                 }
             }
         });
@@ -120,7 +131,7 @@ if (!apiOnly) {
         const mfs = middleware.dev.fileSystem;
         router.get("*", async (ctx) => {
             ctx.body = await new Promise(async (resolve, reject) => {
-                await mfs.readFile(path.join(config.output, "index.html"), "utf8", (err, result) => (err ? reject(err) : resolve(result)));
+                await mfs.readFile(path.join(clientConfig.output, "index.html"), "utf8", (err, result) => (err ? reject(err) : resolve(result)));
             });
         });
         app.use(middleware);
@@ -128,26 +139,19 @@ if (!apiOnly) {
     }
 }
 app.use(router.routes());
-app.use(KoaStatic(config.output));
-if (dev) {
-    let http = require("http");
-    let https = require("https").createServer;
-    if (!noHttp2) {
-        http = require("http2");
-        https = http.createSecureServer;
-    }
-    http.createServer(app.callback())
-        .listen(process.env.PORT || 8000);
-    if (!noSsl) {
-        https({
-            key: fs.readFileSync("key/server.key"),
-            cert: fs.readFileSync("key/server.crt")
-        }, app.callback())
-            .listen(8001);
-    }
+app.use(KoaStatic(clientConfig.output));
+let http = require("http").createServer;
+let https = require("https").createServer;
+if (flags.http2) {
+    http = require("http2").createServer;
+    https = http.createSecureServer;
 }
-else {
-    app.listen(process.env.PORT || 8000);
+if (flags.ssl) {
+    https({
+        key: fs.readFileSync("key/server.key"),
+        cert: fs.readFileSync("key/server.crt")
+    }, app.callback()).listen(8001);
 }
+http(app.callback()).listen(process.env.PORT || 8000);
 logger.info("Server is up and running.");
 //# sourceMappingURL=server.js.map

@@ -93,23 +93,11 @@ var LogSeverity;
     LogSeverity[LogSeverity["Info"] = 2] = "Info";
     LogSeverity[LogSeverity["Log"] = 3] = "Log";
 })(LogSeverity = exports.LogSeverity || (exports.LogSeverity = {}));
-class Async {
-    static promise(func, a1) {
-        return new Promise((resolve, reject) => {
-            func(a1, (err, result) => {
-                if (err)
-                    reject(err);
-                resolve(result);
-            });
-        });
-    }
-}
-exports.Async = Async;
 function acceptsJson(ctx) {
     return ctx.headers["accept"]
         .split(",")
         .map(t => t.trim())
-        .indexOf("application/json") !== -1;
+        .includes("application/json");
 }
 exports.acceptsJson = acceptsJson;
 //# sourceMappingURL=index.js.map

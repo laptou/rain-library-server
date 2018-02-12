@@ -51,7 +51,7 @@ KoaPassport.use("local-login", new passport_local_1.Strategy({ passReqToCallback
     try {
         const person = await data_1.Database.getPersonByUsername(username);
         if (person) {
-            if (person.permissions.indexOf("user") === -1) {
+            if (!person.permissions.includes("user")) {
                 done(null, null, {
                     message: "This person does not have the required permissions. "
                 });
@@ -75,9 +75,9 @@ exports.AuthWall = (...permissions) => {
     return async (ctx, next) => {
         let authenticated = ctx.isAuthenticated();
         if (authenticated) {
-            if (ctx.state.user.permissions.indexOf("admin") === -1) {
+            if (!ctx.state.user.permissions.includes("admin")) {
                 for (const permission of permissions) {
-                    if (ctx.state.user.permissions.indexOf(permission) === -1) {
+                    if (!ctx.state.user.permissions.includes(permission)) {
                         authenticated = false;
                         break;
                     }

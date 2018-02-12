@@ -87,7 +87,7 @@ KoaPassport.use(
 
                 if (person)
                 {
-                    if (person.permissions.indexOf("user") === -1)
+                    if (!person.permissions.includes("user"))
                     {
                         done(null, null, {
                             message:
@@ -123,11 +123,11 @@ export const AuthWall: (...permissions: Permission[]) => IMiddleware = (...permi
 
         if (authenticated)
         {
-            if (ctx.state.user.permissions.indexOf("admin") === -1)
+            if (!ctx.state.user.permissions.includes("admin"))
             {
                 for (const permission of permissions)
                 {
-                    if (ctx.state.user.permissions.indexOf(permission) === -1)
+                    if (!ctx.state.user.permissions.includes(permission))
                     {
                         authenticated = false;
                         break;

@@ -104,7 +104,7 @@ HoldRouter
             const holder = hold.person as Person;
             const user: Person = ctx.state.user;
 
-            if (user.permissions.indexOf("modify_hold") === -1 &&
+            if (!user.permissions.includes("modify_hold") &&
                 holder.id !== user.id)
             {
                 ctx.status = 401;

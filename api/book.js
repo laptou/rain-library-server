@@ -84,7 +84,7 @@ exports.BookRouter
         ctx.message = "User not found.";
         return;
     }
-    if (user.permissions.indexOf("user") === -1) {
+    if (user.permissions.includes("user")) {
         ctx.status = 403;
         ctx.message = "This user cannot borrow books.";
         return;
@@ -117,7 +117,8 @@ exports.BookRouter
         await hold.save();
     }
     let length = ctx.request.body.length ? parseFloat(ctx.request.body.length) : Number.POSITIVE_INFINITY;
-    length = Math.min(length, user.limits && user.limits.days ? user.limits.days : 7);
+    if (user.limits && user.limits.days)
+        length = Math.min(length, user.limits && user.limits.days ? user.limits.days : 7);
     checkout = new data_1.Model.Checkout({
         start: new Date(),
         due: moment().add(length, "days").toDate(),

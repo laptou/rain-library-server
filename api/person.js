@@ -46,21 +46,26 @@ exports.PersonRouter
                     ctx.status = 400;
                     return;
                 }
-                if (ctx.state.user.id === ctx.params.id) {
+                if (ctx.state.user.permissions.includes("admin") &&
+                    !person.permissions.includes("admin")) {
                     // you can't change your own permissions
-                    ctx.status = 400;
-                    ctx.response.message = "You cannot change your own permissions.";
+                    ctx.status = 401;
+                    ctx.response.message = "You cannot change an admin's permissions.";
                     return;
                 }
-                if (!person.permissions.every(p => data.permissions.indexOf(p) !== -1)) {
-                    ctx.status = 403;
+                if (!data.permissions.includes("admin") &&
+                    person.id.toString() === ctx.state.user.id.toString() &&
+                    person.permissions.includes("admin")) {
+                    // you can't change your own permissions
+                    ctx.status = 400;
+                    ctx.response.message = "You cannot remove your own admin status.";
                     return;
                 }
             }
             if (key === "password") {
                 if (ctx.state.user.id === person.id)
                     continue;
-                if (ctx.state.user.permissions.indexOf("admin") !== -1)
+                if (ctx.state.user.permissions.includes("admin"))
                     continue;
                 ctx.status = 403;
                 return;

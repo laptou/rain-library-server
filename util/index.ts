@@ -1,4 +1,4 @@
-import { Chalk, default as chalk } from "chalk";
+import chalk, { Chalk } from "chalk";
 import * as Koa from "koa";
 
 export class Logger
@@ -117,25 +117,10 @@ export enum LogSeverity
     Log
 }
 
-export abstract class Async
-{
-    static promise<T>(func: (a1, cb: (err, result: T) => void) => any, a1): Promise<T>
-    {
-        return new Promise((resolve, reject) =>
-        {
-            func(a1, (err, result) =>
-            {
-                if (err) reject(err);
-                resolve(result);
-            });
-        });
-    }
-}
-
 export function acceptsJson(ctx: Koa.Context): boolean
 {
     return ctx.headers["accept"]
         .split(",")
         .map(t => t.trim())
-        .indexOf("application/json") !== -1;
+        .includes("application/json");
 }
