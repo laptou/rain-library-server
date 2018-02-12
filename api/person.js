@@ -46,6 +46,12 @@ exports.PersonRouter
                     ctx.status = 400;
                     return;
                 }
+                if (ctx.state.user.id === ctx.params.id) {
+                    // you can't change your own permissions
+                    ctx.status = 400;
+                    ctx.response.message = "You cannot change your own permissions.";
+                    return;
+                }
                 if (!person.permissions.every(p => data.permissions.indexOf(p) !== -1)) {
                     ctx.status = 403;
                     return;
@@ -71,51 +77,59 @@ exports.PersonRouter
 });
 exports.PersonRouter
     .get("/me/status/checkedout", auth_1.AuthWall(), async (ctx) => {
-    ctx.response.body = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id);
+    ctx.response.body = await data_1.Database.getCurrentCheckoutsForPerson(ctx.state.user.id);
 })
     .get("/me/status/onhold", auth_1.AuthWall(), async (ctx) => {
     ctx.response.body = await data_1.Database.getPendingHoldsForPerson(ctx.state.user.id);
 })
     .get("/me/status/current", auth_1.AuthWall(), async (ctx) => {
-    const checkouts = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id);
+    const fines = await data_1.Database.getCurrentFinesForPerson(ctx.state.user.id);
+    const checkouts = await data_1.Database.getCurrentCheckoutsForPerson(ctx.state.user.id);
     const holds = await data_1.Database.getPendingHoldsForPerson(ctx.state.user.id);
     ctx.response.body = [
+        ...fines.map(c => Object.assign(c.toJSON(), { type: "fine" })),
         ...checkouts.map(c => Object.assign(c.toJSON(), { type: "checkout" })),
         ...holds.map(h => Object.assign(h.toJSON(), { type: "hold" }))
     ];
 })
     .get("/me/status/all", auth_1.AuthWall(), async (ctx) => {
-    const checkouts = await data_1.Database.getCheckoutsForUser(ctx.state.user.id);
+    const fines = await data_1.Database.getFinesForPerson(ctx.state.user.id);
+    const checkouts = await data_1.Database.getCheckoutsForPerson(ctx.state.user.id);
     const holds = await data_1.Database.getPendingHoldsForPerson(ctx.state.user.id);
     ctx.response.body = [
+        ...fines.map(c => Object.assign(c.toJSON(), { type: "fine" })),
         ...checkouts.map(c => Object.assign(c.toJSON(), { type: "checkout" })),
         ...holds.map(h => Object.assign(h.toJSON(), { type: "hold" }))
     ];
 })
     .get("/:id/status/checkedout", auth_1.AuthWall("modify_person"), async (ctx) => {
-    ctx.response.body = await data_1.Database.getCurrentCheckoutsForUser(ctx.params.id);
+    ctx.response.body = await data_1.Database.getCurrentCheckoutsForPerson(ctx.params.id);
 })
     .get("/:id/status/onhold", auth_1.AuthWall("modify_person"), async (ctx) => {
     ctx.response.body = await data_1.Database.getPendingHoldsForPerson(ctx.params.id);
 })
-    .get("/:id/status/all", auth_1.AuthWall("modify_person"), async (ctx) => {
-    const checkouts = await data_1.Database.getCurrentCheckoutsForUser(ctx.params.id);
+    .get("/:id/status/current", auth_1.AuthWall("modify_person"), async (ctx) => {
+    const fines = await data_1.Database.getCurrentFinesForPerson(ctx.params.id);
+    const checkouts = await data_1.Database.getCurrentCheckoutsForPerson(ctx.params.id);
     const holds = await data_1.Database.getPendingHoldsForPerson(ctx.params.id);
     ctx.response.body = [
+        ...fines.map(c => Object.assign(c.toJSON(), { type: "fine" })),
         ...checkouts.map(c => Object.assign(c.toJSON(), { type: "checkout" })),
         ...holds.map(h => Object.assign(h.toJSON(), { type: "hold" }))
     ];
 })
     .get("/:id/status/all", auth_1.AuthWall("modify_person"), async (ctx) => {
-    const checkouts = await data_1.Database.getCheckoutsForUser(ctx.params.id);
+    const fines = await data_1.Database.getFinesForPerson(ctx.params.id);
+    const checkouts = await data_1.Database.getCheckoutsForPerson(ctx.params.id);
     const holds = await data_1.Database.getPendingHoldsForPerson(ctx.params.id);
     ctx.response.body = [
+        ...fines.map(c => Object.assign(c.toJSON(), { type: "fine" })),
         ...checkouts.map(c => Object.assign(c.toJSON(), { type: "checkout" })),
         ...holds.map(h => Object.assign(h.toJSON(), { type: "hold" }))
     ];
 })
     .get("/me/status/:isbn", auth_1.AuthWall(), async (ctx) => {
-    const checkouts = await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id, ctx.params.isbn);
+    const checkouts = await data_1.Database.getCurrentCheckoutsForPerson(ctx.state.user.id, ctx.params.isbn);
     if (checkouts.length > 0) {
         const checkout = checkouts.sort((a, b) => a.start < b.start ? -1 : 1)[0];
         if (checkout.due < new Date())

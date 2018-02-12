@@ -208,6 +208,35 @@ export interface QueryOptions
 
 export class Database
 {
+    static async getCurrentFinesForPerson(
+        person: string,
+        options?: QueryOptions
+    ): Promise<Fine[]>
+    {
+        return await Model.Fine
+            .find({
+                person,
+                completed: false
+            })
+            .populate("checkout")
+            .populate("person")
+            .populate("book");
+    }
+
+    static async getFinesForPerson(
+        person: string,
+        options?: QueryOptions
+    ): Promise<Fine[]>
+    {
+        return await Model.Fine
+            .find({
+                person
+            })
+            .populate("checkout")
+            .populate("person")
+            .populate("book");
+    }
+
     static async getFinesSince(
         date: Date,
         options?: QueryOptions
@@ -307,7 +336,7 @@ export class Database
 
     //#region checkouts
 
-    static async getCurrentCheckoutsForUser(
+    static async getCurrentCheckoutsForPerson(
         userId: string,
         isbn?: string,
         options?: QueryOptions
@@ -335,7 +364,7 @@ export class Database
         );
     }
 
-    static async getCheckoutsForUser(
+    static async getCheckoutsForPerson(
         userId: string,
         isbn?: string,
         options?: QueryOptions

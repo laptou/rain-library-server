@@ -135,7 +135,7 @@ BookRouter
             if (user.limits && user.limits.books)
             {
 
-                const checkouts = await Database.getCurrentCheckoutsForUser(user.id, null, { populate: false });
+                const checkouts = await Database.getCurrentCheckoutsForPerson(user.id, null, { populate: false });
 
                 if (user.limits.books <= checkouts.length)
                 {

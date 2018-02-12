@@ -34,7 +34,7 @@ exports.HoldRouter
     .get("/me/pending", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getPendingHoldsForPerson(ctx.state.user)))
     .post("/me/:isbn", auth_1.AuthWall("place_hold"), async (ctx) => {
     if (await Rx.Observable
-        .from(await data_1.Database.getCurrentCheckoutsForUser(ctx.state.user.id))
+        .from(await data_1.Database.getCurrentCheckoutsForPerson(ctx.state.user.id))
         .findIndex(c => c.book.isbn === ctx.params.isbn)
         .toPromise() !== -1) {
         // if the user has already checked this book out, deny access

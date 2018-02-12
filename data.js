@@ -104,6 +104,25 @@ exports.Model = {
     Checkout: mongoose.model("Checkout", schema.Checkout)
 };
 class Database {
+    static async getCurrentFinesForPerson(person, options) {
+        return await exports.Model.Fine
+            .find({
+            person,
+            completed: false
+        })
+            .populate("checkout")
+            .populate("person")
+            .populate("book");
+    }
+    static async getFinesForPerson(person, options) {
+        return await exports.Model.Fine
+            .find({
+            person
+        })
+            .populate("checkout")
+            .populate("person")
+            .populate("book");
+    }
     static async getFinesSince(date, options) {
         return await exports.Model.Fine
             .find({
@@ -148,7 +167,7 @@ class Database {
         return await Database.getBooks(exports.Model.Book.find({ name: { $regex: `^${search}`, $options: "i" } }), options);
     }
     //#region checkouts
-    static async getCurrentCheckoutsForUser(userId, isbn, options) {
+    static async getCurrentCheckoutsForPerson(userId, isbn, options) {
         if (isbn) {
             const book = await exports.Model.Book.findOne({ isbn });
             return await Database.getCheckouts(exports.Model.Checkout.find({
@@ -162,7 +181,7 @@ class Database {
             person: userId
         }), options);
     }
-    static async getCheckoutsForUser(userId, isbn, options) {
+    static async getCheckoutsForPerson(userId, isbn, options) {
         if (isbn) {
             const book = await exports.Model.Book.findOne({ isbn });
             return await Database.getCheckouts(exports.Model.Checkout.find({

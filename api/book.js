@@ -96,7 +96,7 @@ exports.BookRouter
         return;
     }
     if (user.limits && user.limits.books) {
-        const checkouts = await data_1.Database.getCurrentCheckoutsForUser(user.id, null, { populate: false });
+        const checkouts = await data_1.Database.getCurrentCheckoutsForPerson(user.id, null, { populate: false });
         if (user.limits.books <= checkouts.length) {
             ctx.status = 403;
             ctx.message = "Checkout limit has been reached.";

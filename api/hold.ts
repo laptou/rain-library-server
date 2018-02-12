@@ -46,7 +46,7 @@ HoldRouter
     .post("/me/:isbn", AuthWall("place_hold"), async ctx =>
     {
         if (await Rx.Observable
-            .from(await Database.getCurrentCheckoutsForUser(ctx.state.user.id))
+            .from(await Database.getCurrentCheckoutsForPerson(ctx.state.user.id))
             .findIndex(c => (c.book as Book).isbn === ctx.params.isbn)
             .toPromise() !== -1)
         {
