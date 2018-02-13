@@ -285,15 +285,15 @@
     );
 
     trace(
-        "Inserting reeraa sample",
+        "Inserting Johnny Admin sample",
         db.people.update(
             { _id: ObjectId("5a5624d00408d33ed0c28ce4") },
             {
                 password:
-                    "$2a$12$pRcEPIMwrwj9D81xSvU.vO98GLOy607GIFdmJvaeXAO03OviEkRcu",
-                username: "rEeraa",
-                permissions: ["user", "place_hold", "admin"],
-                name: { first: "ree", last: "raa" }
+                    "$2a$12$xV7R4puOIhiccd2LjvMaQu6MvOFNUh4HYV3FSBAhgoIA4yXeTSNxW",
+                username: "johnny",
+                permissions: ["user", "admin"],
+                name: { first: "Johnny", last: "Admin" }
             },
             { upsert: true }
         )
@@ -309,7 +309,7 @@
                     { publisher: "Heehee Publishing", version: NumberInt(3) }
                 ],
                 authors: [ObjectId("5a400a88da662e0ec88f88f3")],
-                genre: ["mystery", "egg"],
+                genre: ["mystery"],
                 copies: [ObjectId("5a5d01168a45aa1d1688609b")],
                 year: NumberInt(1845),
                 isbn: "9780553213508"
@@ -323,10 +323,10 @@
         db.checkouts.update(
             { _id: ObjectId("5a5d01168a45aa1d1688609c") },
             {
-                start: ISODate("2018-01-11T00:00:00Z"),
+                start: ISODate("2018-02-13T00:00:00Z"),
                 penalty: 4,
                 completed: false,
-                due: ISODate("2018-02-11T22:05:00Z"),
+                due: ISODate("2018-02-25T22:05:00Z"),
                 book: ObjectId("5a5d01168a45aa1d1688609b"),
                 person: ObjectId("5a5624d00408d33ed0c28ce4")
             },
@@ -342,7 +342,7 @@
                 date: ISODate("2018-01-11T00:00:00Z"),
                 completed: false,
                 isbn: "9780553213508",
-                person: ObjectId("5a598571f206d2259c0edb7a")
+                person: ObjectId("5a5624d00408d33ed0c28ce4")
             },
             { upsert: true }
         )

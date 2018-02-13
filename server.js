@@ -29,7 +29,8 @@ const flags = serverConfig.flags;
 const switches = {
     api_only: "api-only",
     http2: "http2",
-    ssl: "ssl"
+    ssl: "ssl",
+    ssl_redirect: "ssl-redirect"
 };
 for (const sw in switches) {
     if (!switches.hasOwnProperty(sw))
@@ -45,6 +46,10 @@ if (flags.ssl)
     logger.info("Running with SSL mode.");
 else
     logger.info("Not running with SSL mode.");
+if (flags.ssl_redirect)
+    logger.info("Running with HTTPS redirect.");
+else
+    logger.info("Not running with HTTPS redirect.");
 if (flags.http2)
     logger.info("Running in HTTP2 mode.");
 else
@@ -77,7 +82,15 @@ router.use("/api", api_1.ApiRouter.routes());
 router.use("/auth", auth_1.AuthRouter.routes());
 app.use(async (ctx, next) => {
     logger.log(`${Moment().format("YYYY.MM.DD hh:mm:ssaZ")} - ${ctx.req.method} ${ctx.req.url} - HTTP ${ctx.req.httpVersion} - ${ctx.req.connection.remoteAddress}`);
-    await next();
+    if (flags.ssl_redirect && ctx.href.match(/^http\:\/\//)) {
+        logger.log(`Redirecting from ${ctx.href}`);
+        if (dev || ctx.href.includes("localhost"))
+            ctx.redirect(ctx.href.replace(/^http\:\/\/localhost:8000/, "https://localhost:8001"));
+        else
+            ctx.redirect(ctx.href.replace(/^http\:\/\//, "https://"));
+    }
+    else
+        await next();
 });
 const clientConfig = require("../client/config");
 if (!flags.api_only) {
@@ -115,15 +128,15 @@ if (!flags.api_only) {
             dev: {
                 publicPath: "/",
                 log: webpackLog.log.bind(webpackLog),
-                warn: webpackLog.log.bind(webpackLog),
-                error: webpackLog.log.bind(webpackLog),
+                warn: webpackLog.warn.bind(webpackLog),
+                error: webpackLog.error.bind(webpackLog),
                 noInfo: true,
                 stats: {
                     colors: true
                 }
             },
             hot: {
-                log: webpackLog.log.bind(webpackLog),
+                log: webpackLog.info.bind(webpackLog),
                 path: "/__webpack_hmr",
                 heartbeat: 1000
             }
@@ -148,8 +161,8 @@ if (flags.http2) {
 }
 if (flags.ssl) {
     https({
-        key: fs.readFileSync("key/server.key"),
-        cert: fs.readFileSync("key/server.crt")
+        pfx: fs.readFileSync(path.resolve(__dirname, "key/server.pfx")),
+        passphrase: "password"
     }, app.callback()).listen(8001);
 }
 http(app.callback()).listen(process.env.PORT || 8000);

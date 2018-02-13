@@ -18,10 +18,11 @@ const connect = (async () => {
         }
         catch (err) {
             logger.error("Database connection failed: " + err);
-            if (dev) {
+            if (target !== "mongodb://localhost/library")
                 target = "mongodb://localhost/library";
-                logger.info("Attempting to connect to localhost");
-            }
+            else
+                target = config.db;
+            logger.info("Attempting to connect to " + target);
         }
     }
     conn.once("error", connect);

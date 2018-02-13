@@ -116,7 +116,7 @@ BookRouter
                 return;
             }
 
-            if (user.permissions.includes("user"))
+            if (!user.permissions.includes("user"))
             {
                 ctx.status = 403;
                 ctx.message = "This user cannot borrow books.";

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const bcrypt = require("bcrypt");
 const Router = require("koa-router");
 const Rx = require("rxjs");
 const auth_1 = require("../auth");
@@ -70,6 +71,15 @@ exports.PersonRouter
                 ctx.status = 403;
                 return;
             }
+        }
+        if ("password" in data && data.password) {
+            const pw = data.password;
+            delete data.password;
+            person.password = await new Promise((res, rej) => bcrypt.hash(pw, 12, (err, hash) => {
+                if (err)
+                    rej(err);
+                res(hash);
+            }));
         }
         Object.assign(person, data);
         person.save();

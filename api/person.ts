@@ -1,3 +1,4 @@
+import * as bcrypt from "bcrypt";
 import * as Router from "koa-router";
 import * as Rx from "rxjs";
 
@@ -92,6 +93,18 @@ PersonRouter
                     ctx.status = 403;
                     return;
                 }
+            }
+
+            if ("password" in data && data.password)
+            {
+                const pw = data.password;
+                delete data.password;
+
+                person.password = await new Promise<string>((res, rej) => bcrypt.hash(pw, 12, (err, hash) =>
+                {
+                    if (err) rej(err);
+                    res(hash);
+                }));
             }
 
             Object.assign(person, data);
