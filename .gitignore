@@ -59,4 +59,5 @@ typings/
 
 .cache-loader/
 data/
-key/
+key/*.key
+key/*.crt

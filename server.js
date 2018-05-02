@@ -81,7 +81,11 @@ app.use(KoaPassport.session());
 router.use("/api", api_1.ApiRouter.routes());
 router.use("/auth", auth_1.AuthRouter.routes());
 app.use(async (ctx, next) => {
-    logger.log(`${Moment().format("YYYY.MM.DD hh:mm:ssaZ")} - ${ctx.req.method} ${ctx.req.url} - HTTP ${ctx.req.httpVersion} - ${ctx.req.connection.remoteAddress}`);
+    logger.log(Moment().format("YYYY.MM.DD hh:mm:ssaZ") + " - " +
+        ctx.req.method + " " +
+        ctx.req.url + " - " +
+        `HTTP ${ctx.req.httpVersion} - ` +
+        ctx.req.connection.remoteAddress);
     if (flags.ssl_redirect && ctx.href.match(/^http\:\/\//)) {
         logger.log(`Redirecting from ${ctx.href}`);
         if (dev || ctx.href.includes("localhost"))
@@ -123,6 +127,7 @@ if (!flags.api_only) {
         const webpackLog = new util_1.Logger(util_1.LogSource.Webpack);
         const compiler = require("webpack")(require(`../client/webpack.${dev ? "dev" : "prod"}`));
         webpackLog.log("Loaded configuration.");
+        console.log("空白" + !!flags.ssl);
         const middleware = KoaWebpack({
             compiler,
             dev: {
@@ -136,9 +141,9 @@ if (!flags.api_only) {
                 }
             },
             hot: {
-                log: webpackLog.info.bind(webpackLog),
-                path: "/__webpack_hmr",
-                heartbeat: 1000
+                https: !!flags.ssl,
+                port: 8002,
+                reload: true
             }
         });
         const mfs = middleware.dev.fileSystem;
@@ -161,8 +166,8 @@ if (flags.http2) {
 }
 if (flags.ssl) {
     https({
-        pfx: fs.readFileSync(path.resolve(__dirname, "key/server.pfx")),
-        passphrase: "password"
+        key: fs.readFileSync(path.resolve(__dirname, "key/localhost.key")),
+        cert: fs.readFileSync(path.resolve(__dirname, "key/localhost.crt")),
     }, app.callback()).listen(8001);
 }
 http(app.callback()).listen(process.env.PORT || 8000);
