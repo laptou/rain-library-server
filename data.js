@@ -12,7 +12,7 @@ const connect = (async () => {
     while (true) {
         try {
             logger.info("Attempting to connect to database.");
-            await mongoose.connect(target, { useMongoClient: true });
+            await mongoose.connect(target);
             logger.info("Successfully connected to database.");
             break;
         }
@@ -105,8 +105,8 @@ exports.Model = {
     Checkout: mongoose.model("Checkout", schema.Checkout)
 };
 class Database {
-    static async getCurrentFinesForPerson(person, options) {
-        return await exports.Model.Fine
+    static getCurrentFinesForPerson(person, options) {
+        return exports.Model.Fine
             .find({
             person,
             completed: false
@@ -116,16 +116,14 @@ class Database {
             .populate("book");
     }
     static async getFinesForPerson(person, options) {
-        return await exports.Model.Fine
-            .find({
-            person
-        })
+        return exports.Model.Fine
+            .find({ person })
             .populate("checkout")
             .populate("person")
             .populate("book");
     }
     static async getFinesSince(date, options) {
-        return await exports.Model.Fine
+        return exports.Model.Fine
             .find({
             date: { $gte: date }
         })
@@ -134,25 +132,25 @@ class Database {
             .populate("book");
     }
     static async getBookById(id, options) {
-        return await Database.getBooks(exports.Model.Book.findById(id), options);
+        return Database.getBooks(exports.Model.Book.findById(id), options);
     }
     static async getBookByCopyId(copyId, options) {
-        return await Database.getBooks(exports.Model.Book.findOne({ copies: copyId }), options);
+        return Database.getBooks(exports.Model.Book.findOne({ copies: copyId }), options);
     }
     static async getBooksByAuthor(person, options) {
-        return await Database.getBooks(exports.Model.Book.find({ authors: person }), options);
+        return Database.getBooks(exports.Model.Book.find({ authors: person }), options);
     }
     static async getBookByIsbn(isbn, options) {
-        return await Database.getBooks(exports.Model.Book.findOne({ isbn }), options);
+        return Database.getBooks(exports.Model.Book.findOne({ isbn }), options);
     }
     static async getBooksByTitle(title, options) {
-        return await Database.getBooks(exports.Model.Book.find({ name: title }).collation({
+        return Database.getBooks(exports.Model.Book.find({ name: title }).collation({
             locale: "en",
             strength: 1
         }), options);
     }
     static async searchBooks(search, options) {
-        return await Database.getBooks(exports.Model.Book.find({ $text: { $search: search } }), options);
+        return Database.getBooks(exports.Model.Book.find({ $text: { $search: search } }), options);
     }
     static async searchPeople(search, options) {
         return (await exports.Model.Person.aggregate([
@@ -165,19 +163,19 @@ class Database {
         ])).map(o => new exports.Model.Person(o));
     }
     static async searchBooksByTitle(search, options) {
-        return await Database.getBooks(exports.Model.Book.find({ name: { $regex: `^${search}`, $options: "i" } }), options);
+        return Database.getBooks(exports.Model.Book.find({ name: { $regex: `^${search}`, $options: "i" } }), options);
     }
     //#region checkouts
     static async getCurrentCheckoutsForPerson(userId, isbn, options) {
         if (isbn) {
             const book = await exports.Model.Book.findOne({ isbn });
-            return await Database.getCheckouts(exports.Model.Checkout.find({
+            return Database.getCheckouts(exports.Model.Checkout.find({
                 completed: false,
                 person: userId,
                 copy: { $in: book.copies }
             }), options);
         }
-        return await Database.getCheckouts(exports.Model.Checkout.find({
+        return Database.getCheckouts(exports.Model.Checkout.find({
             completed: false,
             person: userId
         }), options);
@@ -185,29 +183,29 @@ class Database {
     static async getCheckoutsForPerson(userId, isbn, options) {
         if (isbn) {
             const book = await exports.Model.Book.findOne({ isbn });
-            return await Database.getCheckouts(exports.Model.Checkout.find({
+            return Database.getCheckouts(exports.Model.Checkout.find({
                 person: userId,
                 copy: { $in: book.copies }
             }), options);
         }
-        return await Database.getCheckouts(exports.Model.Checkout.find({
+        return Database.getCheckouts(exports.Model.Checkout.find({
             person: userId
         }), options);
     }
     static async getCurrentCheckoutForCopy(copyId, options) {
-        return await Database.getCheckouts(exports.Model.Checkout.findOne({
+        return Database.getCheckouts(exports.Model.Checkout.findOne({
             completed: false,
             copy: copyId
         }), options);
     }
     static async getCheckoutsSince(date, options) {
-        return await Database.getCheckouts(exports.Model.Checkout.find({
+        return Database.getCheckouts(exports.Model.Checkout.find({
             start: { $gte: date }
         }), options);
     }
     static async getCheckoutsForIsbn(isbn, options) {
         const book = await exports.Model.Book.findOne({ isbn });
-        return await Database.getCheckouts(exports.Model.Checkout.find({
+        return Database.getCheckouts(exports.Model.Checkout.find({
             book: { $in: book.copies }
         }), options);
     }
@@ -215,38 +213,38 @@ class Database {
     //#region people
     static async getPersonById(id) {
         const query = exports.Model.Person.findById(id);
-        return await query.exec();
+        return query.exec();
     }
     static async getPersonByUsername(name) {
         const query = exports.Model.Person.findOne({ username: name }, null, {
             collation: { locale: "en", strength: 1 }
         });
-        return await query.exec();
+        return query.exec();
     }
     //#endregion
     //#region holds
     static async getHoldById(id, options) {
-        return await Database.getHolds(exports.Model.Hold.findById(id).sort({ date: 1 }), options);
+        return Database.getHolds(exports.Model.Hold.findById(id).sort({ date: 1 }), options);
     }
     static async getHoldsForBook(isbn, options) {
-        return await Database.getHolds(exports.Model.Hold.find({ isbn }).sort({ date: 1 }), options);
+        return Database.getHolds(exports.Model.Hold.find({ isbn }).sort({ date: 1 }), options);
     }
     static async getPendingHoldsForBook(isbn, options) {
-        return await Database.getHolds(exports.Model.Hold.find({ isbn, completed: false }).sort({ date: 1 }), options);
+        return Database.getHolds(exports.Model.Hold.find({ isbn, completed: false }).sort({ date: 1 }), options);
     }
     static async getHoldsForPerson(person, options) {
-        return await Database.getHolds(exports.Model.Hold.find({
+        return Database.getHolds(exports.Model.Hold.find({
             person: typeof person === "string" ? person : person.id
         }), options);
     }
     static async getPendingHoldsForPerson(person, options) {
-        return await Database.getHolds(exports.Model.Hold.find({
+        return Database.getHolds(exports.Model.Hold.find({
             person: typeof person === "string" ? person : person.id,
             completed: false
         }), options);
     }
     static async getPendingHoldForPerson(person, isbn, options) {
-        return await Database.getHolds(exports.Model.Hold.findOne({
+        return Database.getHolds(exports.Model.Hold.findOne({
             person: typeof person === "string" ? person : person.id,
             isbn,
             completed: false
@@ -261,7 +259,7 @@ class Database {
         }
         if (options && options.limit)
             query = query.limit(options.limit);
-        return await query.exec();
+        return query.exec();
     }
     static async getBooks(query, options) {
         // populate by default
@@ -269,12 +267,12 @@ class Database {
             query = query.populate("authors");
         if (options && options.limit)
             query = query.limit(options.limit);
-        return await query.exec();
+        return query.exec();
     }
     static async getPeople(query, options) {
         if (options && options.limit)
             query = query.limit(options.limit);
-        return await query.exec();
+        return query.exec();
     }
     static async getCheckouts(query, options) {
         if (!options || (options && options.populate))
@@ -289,7 +287,7 @@ class Database {
             });
         if (options && options.limit)
             query = query.limit(options.limit);
-        return await query.exec();
+        return query.exec();
     }
 }
 exports.Database = Database;

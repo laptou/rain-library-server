@@ -16,8 +16,7 @@ import { Logger, LogSource } from "./util";
 
 const logger = new Logger(LogSource.Server);
 
-process.on("uncaughtException", err =>
-{
+process.on("uncaughtException", err => {
     logger.error("Fatal error, process exiting");
     logger.error(err);
 
@@ -42,8 +41,7 @@ const switches =
         ssl_redirect: "ssl-redirect"
     };
 
-for (const sw in switches)
-{
+for (const sw in switches) {
     if (!switches.hasOwnProperty(sw)) continue;
 
     if (process.argv.includes("-" + switches[sw]))
@@ -74,16 +72,13 @@ app.keys = [
     "<\xd2Oa\x9f\xfa\xe2\xc6\xdad \xcf\x18=\xf5h.\xff\xb2\xd3\x02M.vI\x9eN\xe7'\xa6\xc8I\xd62J\xbe"
 ];
 
-app.use(async (ctx, next) =>
-{
-    try
-    {
+app.use(async (ctx, next) => {
+    try {
         await next();
-    } catch (err)
-    {
+    } catch (err) {
         ctx.status = err.status || 500;
         ctx.body = err.message;
-        ctx.app.emit("error", err, ctx);
+        // ctx.app.emit("error", err, ctx);
     }
 });
 
@@ -98,16 +93,14 @@ app.use(KoaPassport.session());
 router.use("/api", ApiRouter.routes());
 router.use("/auth", AuthRouter.routes());
 
-app.use(async (ctx, next) =>
-{
+app.use(async (ctx, next) => {
     logger.log(
         `${Moment().format("YYYY.MM.DD hh:mm:ssaZ")} - ${ctx.req.method} ${
         ctx.req.url
         } - HTTP ${ctx.req.httpVersion} - ${ctx.req.connection.remoteAddress}`
     );
 
-    if (flags.ssl_redirect && ctx.href.match(/^http\:\/\//))
-    {
+    if (flags.ssl_redirect && ctx.href.match(/^http\:\/\//)) {
         logger.log(`Redirecting from ${ctx.href}`);
         if (dev || ctx.href.includes("localhost"))
             ctx.redirect(ctx.href.replace(/^http\:\/\/localhost:8000/, "https://localhost:8001"));
@@ -120,44 +113,36 @@ app.use(async (ctx, next) =>
 
 const clientConfig = require("../client/config");
 
-if (!flags.api_only)
-{
-    if (!dev)
-    {
+if (!flags.api_only) {
+    if (!dev) {
         logger.log("Configuring catch-all router.");
 
-        router.get("*", async ctx =>
-        {
+        router.get("*", async ctx => {
             const target = path.join(clientConfig.output, ctx.path);
             const f = file => fs.existsSync(file) && fs.statSync(file).isFile();
 
             logger.log(`\tCatch all router hit: ${target}`);
 
-            if (ctx.path)
-            {
-                if (f(target + ".gz"))
-                {
+            if (ctx.path) {
+                if (f(target + ".gz")) {
                     logger.log(`\tServing gzipped file: ${target}.gz`);
                     await KoaSendFile(ctx, target + ".gz");
 
                     ctx.set("Content-Encoding", "gzip");
                     ctx.type = path.extname(target);
                 }
-                else if (f(target))
-                {
+                else if (f(target)) {
                     logger.log(`\tServing file: ${target}`);
                     await KoaSendFile(ctx, target);
                 }
-                else
-                {
+                else {
                     logger.log(`\tServing index: ${target}`);
                     await KoaSendFile(ctx, path.join(clientConfig.output, "index.html"));
                 }
             }
         });
     }
-    else
-    {
+    else {
         const KoaWebpack = require("koa-webpack");
         const webpackLog = new Logger(LogSource.Webpack);
         const compiler = require("webpack")(
@@ -186,10 +171,8 @@ if (!flags.api_only)
 
         const mfs = middleware.dev.fileSystem;
 
-        router.get("*", async ctx =>
-        {
-            ctx.body = await new Promise(async (resolve, reject) =>
-            {
+        router.get("*", async ctx => {
+            ctx.body = await new Promise(async (resolve, reject) => {
                 await mfs.readFile(
                     path.join(clientConfig.output, "index.html"),
                     "utf8",
@@ -210,14 +193,12 @@ app.use(KoaStatic(clientConfig.output));
 let http = require("http").createServer;
 let https = require("https").createServer;
 
-if (flags.http2)
-{
+if (flags.http2) {
     http = require("http2").createServer;
     https = http.createSecureServer;
 }
 
-if (flags.ssl)
-{
+if (flags.ssl) {
     https({
         pfx: fs.readFileSync(path.resolve(__dirname, "key/server.pfx")),
         passphrase: "password"

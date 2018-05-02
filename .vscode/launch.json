@@ -7,7 +7,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Server (API Only)",
+            "name": "API Only",
             "sourceMaps": true,
             "program": "${workspaceFolder}/server.js",
             "console": "integratedTerminal",
@@ -25,7 +25,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Server (Production)",
+            "name": "Production",
             "sourceMaps": true,
             "program": "${workspaceFolder}/server.js",
             "console": "integratedTerminal",
@@ -42,7 +42,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Server",
+            "name": "Normal",
             "sourceMaps": true,
             "program": "${workspaceFolder}/server.js",
             "console": "integratedTerminal",

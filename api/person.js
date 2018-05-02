@@ -2,7 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const bcrypt = require("bcrypt");
 const Router = require("koa-router");
-const Rx = require("rxjs");
+const rxjs_1 = require("rxjs");
+const operators_1 = require("rxjs/operators");
 const auth_1 = require("../auth");
 const data_1 = require("../data");
 const book_1 = require("./book");
@@ -147,16 +148,12 @@ exports.PersonRouter
     const checkouts = await data_1.Database.getCurrentCheckoutsForPerson(ctx.state.user.id, ctx.params.isbn);
     if (checkouts.length > 0) {
         const checkout = checkouts.sort((a, b) => a.start < b.start ? -1 : 1)[0];
-        if (checkout.due < new Date())
-            ctx.response.body = { status: book_1.BookStatus.Overdue, checkout };
-        else
-            ctx.response.body = { status: book_1.BookStatus.CheckedOut, checkout };
+        ctx.response.body = { status: checkout.due < new Date() ? book_1.BookStatus.Overdue : book_1.BookStatus.CheckedOut, checkout };
         return;
     }
     const holds = await data_1.Database.getPendingHoldsForBook(ctx.params.isbn, { populate: false });
-    const position = await Rx.Observable
-        .from(holds)
-        .findIndex((hold) => hold.person.toString() === ctx.state.user.id)
+    const position = await rxjs_1.from(holds)
+        .pipe(operators_1.findIndex((hold) => hold.person.toString() === ctx.state.user.id))
         .toPromise();
     if (position >= 0) {
         ctx.response.body = { status: book_1.BookStatus.OnHold, hold: holds[position], position };

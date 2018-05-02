@@ -2,7 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const Router = require("koa-router");
 const moment = require("moment");
-const Rx = require("rxjs");
+const rxjs_1 = require("rxjs");
+const operators_1 = require("rxjs/operators");
 const auth_1 = require("../auth");
 const data_1 = require("../data");
 const util_1 = require("../util");
@@ -175,14 +176,14 @@ exports.BookRouter.get("/search/:query", async (ctx) => {
     let limit = null;
     if (ctx.query.limit)
         limit = parseInt(ctx.query.limit, 10);
-    let books = Rx.Observable.from([
+    let books = rxjs_1.from([
         ...await data_1.Database.searchBooksByTitle(ctx.params.query, { populate: true, limit }),
         ...await data_1.Database.searchBooks(ctx.params.query, { populate: true, limit })
     ])
-        .distinct(book => book.id);
+        .pipe(operators_1.distinct(book => book.id));
     if (limit)
-        books = books.take(limit);
-    ctx.response.body = await books.toArray().toPromise();
+        books = books.pipe(operators_1.take(limit));
+    ctx.response.body = await books.pipe(operators_1.toArray()).toPromise();
 });
 exports.BookRouter.get("/search/title/:query", async (ctx) => {
     let limit = null;

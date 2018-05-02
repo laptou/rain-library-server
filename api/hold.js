@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Router = require("koa-router");
-const Rx = require("rxjs/Rx");
+const rxjs_1 = require("rxjs");
+const operators_1 = require("rxjs/operators");
 const auth_1 = require("../auth");
 const data_1 = require("../data");
 const util_1 = require("../util");
@@ -10,20 +11,19 @@ const logger = new util_1.Logger(util_1.LogSource.Api);
 exports.HoldRouter = new Router();
 const getHolds = (getter) => {
     return async (ctx) => {
-        ctx.body = await Rx.Observable
-            .from(await getter(ctx))
-            .flatMap(async (h) => {
-            const checkouts = await data_1.Database.getCheckoutsForIsbn(h.isbn);
-            const book = await data_1.Database.getBookByIsbn(h.isbn);
-            let ready = book.copies.length > checkouts.length;
-            if (ready) {
-                const holds = await data_1.Database.getPendingHoldsForBook(h.isbn);
-                ready = holds[0].id === h.id;
-            }
-            return Object.assign(h.toJSON(), { ready, book });
-        })
-            .toArray()
-            .toPromise();
+        ctx.body =
+            rxjs_1.from(await getter(ctx))
+                .pipe(operators_1.flatMap(async (h) => {
+                const checkouts = await data_1.Database.getCheckoutsForIsbn(h.isbn);
+                const book = await data_1.Database.getBookByIsbn(h.isbn);
+                let ready = book.copies.length > checkouts.length;
+                if (ready) {
+                    const holds = await data_1.Database.getPendingHoldsForBook(h.isbn);
+                    ready = holds[0].id === h.id;
+                }
+                return Object.assign(h.toJSON(), { ready, book });
+            }), operators_1.toArray())
+                .toPromise();
     };
 };
 exports.HoldRouter
@@ -33,9 +33,8 @@ exports.HoldRouter
     .get("/me", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getHoldsForPerson(ctx.state.user)))
     .get("/me/pending", auth_1.AuthWall("place_hold"), getHolds(ctx => data_1.Database.getPendingHoldsForPerson(ctx.state.user)))
     .post("/me/:isbn", auth_1.AuthWall("place_hold"), async (ctx) => {
-    if (await Rx.Observable
-        .from(await data_1.Database.getCurrentCheckoutsForPerson(ctx.state.user.id))
-        .findIndex(c => c.book.isbn === ctx.params.isbn)
+    if (await rxjs_1.from(await data_1.Database.getCurrentCheckoutsForPerson(ctx.state.user.id))
+        .pipe(operators_1.findIndex(c => c.book.isbn === ctx.params.isbn))
         .toPromise() !== -1) {
         // if the user has already checked this book out, deny access
         ctx.status = 400;
