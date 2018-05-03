@@ -48,8 +48,22 @@
             "console": "integratedTerminal",
             "smartStep": true,
             "showAsyncStacks": true,
+            "args": [],
+            "skipFiles": [
+                "node_modules/"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Normal w/ SSL",
+            "sourceMaps": true,
+            "program": "${workspaceFolder}/server.js",
+            "console": "integratedTerminal",
+            "smartStep": true,
+            "showAsyncStacks": true,
             "args": [
-                "-ssl",
+                "-ssl"
             ],
             "skipFiles": [
                 "node_modules/"
