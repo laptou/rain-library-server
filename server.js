@@ -86,15 +86,7 @@ app.use(async (ctx, next) => {
         ctx.req.url + " - " +
         `HTTP ${ctx.req.httpVersion} - ` +
         ctx.req.connection.remoteAddress);
-    if (flags.ssl_redirect && ctx.href.match(/^http\:\/\//)) {
-        logger.log(`Redirecting from ${ctx.href}`);
-        if (dev || ctx.href.includes("localhost"))
-            ctx.redirect(ctx.href.replace(/^http\:\/\/localhost:8000/, "https://localhost:8001"));
-        else
-            ctx.redirect(ctx.href.replace(/^http\:\/\//, "https://"));
-    }
-    else
-        await next();
+    await next();
 });
 const clientConfig = require("../client/config");
 if (!flags.api_only) {
@@ -127,7 +119,6 @@ if (!flags.api_only) {
         const webpackLog = new util_1.Logger(util_1.LogSource.Webpack);
         const compiler = require("webpack")(require(`../client/webpack.${dev ? "dev" : "prod"}`));
         webpackLog.log("Loaded configuration.");
-        console.log("空白" + !!flags.ssl);
         const middleware = KoaWebpack({
             compiler,
             dev: {
