@@ -8,8 +8,9 @@
             "type": "shell",
             "command": "mongod --dbpath ./data",
             "group": "none",
+            "isBackground": true,
             "presentation": {
-                "reveal": "always",
+                "reveal": "silent",
                 "panel": "dedicated"
             },
             "problemMatcher": []
