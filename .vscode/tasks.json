@@ -18,13 +18,13 @@
         {
             "label": "Build & Publish to Staging",
             "type": "shell",
-            "command": "publish.ps1",
+            "command": "powershell ./script/publish.ps1",
             "problemMatcher": []
         },
         {
             "label": "Build & Publish to Production",
             "type": "shell",
-            "command": "publish-prod.ps1",
+            "command": "powershell ./script/publish-prod.ps1",
             "problemMatcher": []
         },
         {
