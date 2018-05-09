@@ -125,9 +125,9 @@ Sequences prefixed with a colon such as `:id` represent a variable in the URI. T
 | -------- | --------------------------------- | ----------------------------------------------------- | ------------------------------------------------------- | -------------------- |
 | GET      | `/book/:isbn`                     | `Book`                                                | Gets the book with the given ISBN.                      |                      |
 | POST     | `/book/:isbn`                     | `Book`                                                | Sets the properties of the book with the given ISBN.    | `modify_book`        |
-| POST     | `/book/author/:id`                | `Book[]`                                              | Gets books authored by the person with id `:id`.        |                      |
-| POST     | `/book/title/:name`               | `Book[]`                                              | Gets books titled `:name`.                              |                      |
-| POST     | `/book/search/:query`             | `Book[]`                                              | Searches books.                                         |                      |
+| GET      | `/book/author/:id`                | `Book[]`                                              | Gets books authored by the person with id `:id`.        |                      |
+| GET      | `/book/title/:name`               | `Book[]`                                              | Gets books titled `:name`.                              |                      |
+| GET      | `/book/search/:query`             | `Book[]`                                              | Searches books.                                         |                      |
 | POST     | `/book/search/title/:query`       | `Book[]`                                              | Searches books by title.                                |                      |
 | GET      | `/book/all/checkedout?days=:days` | `Checkout[]`                                          | Gets checkouts in the last `:days` days.                | `check_out`          |
 | GET      | `/book/all/fined?days=:days`      | `Fine[]`                                              | Gets fines in the last `:days` days.                    | `modify_fine`        |
