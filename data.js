@@ -270,8 +270,12 @@ class Database {
         return query.exec();
     }
     static async getPeople(query, options) {
-        if (options && options.limit)
-            query = query.limit(options.limit);
+        if (options) {
+            if (options.limit)
+                query = query.limit(options.limit);
+            if (options.skip)
+                query = query.skip(options.skip);
+        }
         return query.exec();
     }
     static async getCheckouts(query, options) {

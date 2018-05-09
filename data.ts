@@ -551,7 +551,10 @@ export class Database {
         query: mongoose.DocumentQuery<Person[] | Person, Person>,
         options
     ) {
-        if (options && options.limit) query = query.limit(options.limit);
+        if (options) {
+            if (options.limit) query = query.limit(options.limit);
+            if (options.skip) query = query.skip(options.skip);
+        }
 
         return query.exec();
     }
