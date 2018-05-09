@@ -1,7 +1,7 @@
 # Server 
 
 This repository contains the code for the server of this application. It runs on [Node.js](http://nodejs.org/) and is written primarily in [Typescript](http://typescriptlang.org/). It provides a REST API to a [MongoDB](http://mongodb.com/) database, which is hosted separately on a dedicated computer for security.
-
+This data storage includes a dynamic backup feature -- it is backed up every 24 hours if the data has changed.
 
 ## API Documentation
 

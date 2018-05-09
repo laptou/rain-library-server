@@ -53,9 +53,9 @@ PersonRouter
                         return;
                     }
 
-                    if (ctx.state.user.permissions.includes("admin") &&
-                        !person.permissions.includes("admin")) {
-                        // you can't change your own permissions
+                    if (!ctx.state.user.permissions.includes("admin") &&
+                        person.permissions.includes("admin")) {
+                        // you can't change an admin's permissions
                         ctx.status = 401;
                         ctx.response.message = "You cannot change an admin's permissions.";
                         return;
