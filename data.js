@@ -3,7 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose = require("mongoose");
 const config = require("./config");
 const util_1 = require("./util");
-require("mongoose").Promise = Promise; // use require() to get rid of TS error
+// database will keep rejecting numbers unless this is used
+const Int32 = require("mongoose-int32");
 const dev = process.env.NODE_ENV === "development";
 const conn = mongoose.connection;
 const logger = new util_1.Logger(util_1.LogSource.Database);
@@ -49,10 +50,11 @@ const schema = {
     }),
     Book: new mongoose.Schema({
         name: String,
-        editions: [{ version: Number, publisher: String }],
+        edition: { version: Number, publisher: String },
         copies: [mongoose.Schema.Types.ObjectId],
         authors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Person" }],
         genre: [{ type: String }],
+        year: Int32,
         isbn: String
     }, { toObject: { virtuals: true }, toJSON: { virtuals: true } }),
     Checkout: new mongoose.Schema({

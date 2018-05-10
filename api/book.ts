@@ -30,33 +30,35 @@ BookRouter
         if (!book) ctx.status = 404;
         else ctx.response.body = book;
     })
-    .post("/:isbn", AuthWall("modify_book"), ctx => {
-        if (!validate.Object(ctx.body, {
+    .post("/:isbn",
+        AuthWall("modify_book"),
+        validate.Middleware({
             name: "string",
-            edition: { version: "number", publisher: "string" },
+            "edition?": { version: "number", publisher: "string" },
             authors: ["string"],
             copies: ["string"],
             genre: ["string"],
-            rating: "number",
+            "rating?": "number",
             isbn: "string",
-        })) {
-            ctx.status = 400;
-            return;
-        }
+        }), async ctx => {
 
-        const model = new Model.Book(ctx.body);
-        return new Promise((resolve, reject) => {
-            model.save(null, (err) => {
-                if (err) {
-                    ctx.status = 500;
-                }
+            const model =
+                Object.assign(await Database.getBookById(ctx.request.body.id), ctx.request.body) ||
+                new Model.Book(ctx.request.body);
 
-                ctx.status = 200;
+            await new Promise((resolve, reject) => {
+                model.save(null, (err) => {
+                    if (err) {
+                        ctx.status = 400;
+                        ctx.message = "Invalid book.";
+                    } else {
+                        ctx.status = 200;
+                    }
 
-                resolve();
+                    resolve();
+                });
             });
         });
-    });
 
 BookRouter
     .get("/all/checkedout",

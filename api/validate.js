@@ -11,7 +11,11 @@ exports.Id = async (id, ctx, next) => {
     }
 };
 exports.Object = (obj, properties) => {
+    if (obj === undefined || obj === null)
+        return false;
     const validate = (o, t) => {
+        if (t === undefined || t === null)
+            return false;
         if (t instanceof Array) {
             if (t.length === 1) {
                 // [string] means array of strings
@@ -36,7 +40,7 @@ exports.Object = (obj, properties) => {
         if (!properties.hasOwnProperty(prop))
             continue;
         if (!obj.hasOwnProperty(prop)) {
-            if (typeof properties[prop] === "string" && properties[prop].endsWith("?"))
+            if (prop.endsWith("?") || typeof properties[prop] === "string" && properties[prop].endsWith("?"))
                 continue;
             else
                 return false;

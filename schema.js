@@ -99,7 +99,7 @@
             validator: {
                 $jsonSchema: {
                     bsonType: "object",
-                    required: ["isbn", "name", "authors", "year", "genre"],
+                    required: ["isbn", "name", "authors", "copies", "year", "genre"],
                     properties: {
                         name: { bsonType: "string" },
                         isbn: { bsonType: "string", pattern: "^[0-9]{13}$" },
@@ -305,9 +305,7 @@
             { _id: ObjectId("5a400cf0da662e0ec88f88f4") },
             {
                 name: "The Count of Monte Cristo",
-                editions: [
-                    { publisher: "Heehee Publishing", version: NumberInt(3) }
-                ],
+                edition: { publisher: "Heehee Publishing", version: NumberInt(3) },
                 authors: [ObjectId("5a400a88da662e0ec88f88f3")],
                 genre: ["mystery"],
                 copies: [ObjectId("5a5d01168a45aa1d1688609b")],

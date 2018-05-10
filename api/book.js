@@ -28,26 +28,26 @@ exports.BookRouter
     else
         ctx.response.body = book;
 })
-    .post("/:isbn", auth_1.AuthWall("modify_book"), ctx => {
-    if (!validate.Object(ctx.body, {
-        name: "string",
-        edition: { version: "number", publisher: "string" },
-        authors: ["string"],
-        copies: ["string"],
-        genre: ["string"],
-        rating: "number",
-        isbn: "string",
-    })) {
-        ctx.status = 400;
-        return;
-    }
-    const model = new data_1.Model.Book(ctx.body);
-    return new Promise((resolve, reject) => {
+    .post("/:isbn", auth_1.AuthWall("modify_book"), validate.Middleware({
+    name: "string",
+    "edition?": { version: "number", publisher: "string" },
+    authors: ["string"],
+    copies: ["string"],
+    genre: ["string"],
+    "rating?": "number",
+    isbn: "string",
+}), async (ctx) => {
+    const model = Object.assign(await data_1.Database.getBookById(ctx.request.body.id), ctx.request.body) ||
+        new data_1.Model.Book(ctx.request.body);
+    await new Promise((resolve, reject) => {
         model.save(null, (err) => {
             if (err) {
-                ctx.status = 500;
+                ctx.status = 400;
+                ctx.message = "Invalid book.";
             }
-            ctx.status = 200;
+            else {
+                ctx.status = 200;
+            }
             resolve();
         });
     });

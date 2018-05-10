@@ -24,6 +24,7 @@
         "moment": "^2.22.1",
         "mongo-sanitize": "^1.0.0",
         "mongoose": "^5.0.17",
+        "mongoose-int32": "^0.3.0",
         "passport-local": "^1.0.0",
         "regex-escape": "^3.4.8",
         "rxjs": "^6.0.0"
@@ -52,7 +53,7 @@
         "@types/webpack-env": "^1.13.6",
         "babel-runtime": "^6.26.0",
         "koa-webpack": "^3.0.2",
-        "webpack": "^4.6.0",
+        "webpack": "^4.8.1",
         "webpack-merge": "^4.1.2"
     },
     "scripts": {
